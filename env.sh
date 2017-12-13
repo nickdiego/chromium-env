@@ -1,7 +1,20 @@
-#!/bin/bash
 # ex: ts=2 sw=4 et filetype=sh
 
-chromiumdir=$(cd `dirname $BASH_SOURCE`; pwd)
+case "$SHELL" in
+    */zsh)
+        thisscript="${(%):-%N}"
+        ;;
+    */bash)
+        thisscript="${BASH_SOURCE[0]}"
+        ;;
+    *)
+        echo "Unsupported shell!"
+        exit 1
+        ;;
+    esac
+
+
+chromiumdir=$(cd `dirname $thisscript`; pwd)
 srcdir="${chromiumdir}/src"
 builddir="out/Ozone"
 
@@ -50,4 +63,3 @@ chr_run() {
     echo "Running cmd: $cmd"
     eval "$cmd"
 }
-
