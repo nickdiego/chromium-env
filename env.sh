@@ -17,6 +17,11 @@ builddir="out/Ozone"
 depot="${chromiumdir}/tools/depot_tools"
 if [ -r "$depot" ]; then
     export PATH="${depot}:$PATH"
+
+    if [ -n "$BASH_VERSION" ]; then
+        echo "Laoading bash completion to 'gclient' command"
+        source "${depot}/gclient_completion.sh"
+    fi
 else
     echo "WARNING: depot_tools dir does not exists [$depot]"
 fi
