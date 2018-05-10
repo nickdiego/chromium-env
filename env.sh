@@ -1,18 +1,13 @@
 # ex: ts=2 sw=4 et filetype=sh
 
-case "$SHELL" in
-    */zsh)
-        thisscript="${(%):-%N}"
-        ;;
-    */bash)
-        thisscript="${BASH_SOURCE[0]}"
-        ;;
-    *)
-        echo "Unsupported shell!"
-        exit 1
-        ;;
-    esac
-
+if [ -n "$BASH_VERSION" ]; then
+    thisscript="${BASH_SOURCE[0]}"
+elif [ -n "$ZSH_VERSION" ]; then
+    thisscript="${(%):-%N}"
+else
+    echo "Unsupported shell!"
+    exit 1
+fi
 
 chromiumdir=$(cd `dirname $thisscript`; pwd)
 srcdir="${chromiumdir}/src"
