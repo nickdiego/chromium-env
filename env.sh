@@ -22,6 +22,13 @@ if [ -r "$depot" ]; then
         echo "Laoading bash completion to 'gclient' command"
         source "${depot}/gclient_completion.sh"
     fi
+
+    chromiun_venv=${CHROMIUM_VENV:-~/venvs/chromium}
+    if [ -d ${chromium_venv} ]; then
+        source ${chromiun_venv}/bin/activate
+    else
+        echo "WARNING: chromium python virtualenv not found [${chromiun_venv}]!"
+    fi
 else
     echo "WARNING: depot_tools dir does not exists [$depot]"
 fi
