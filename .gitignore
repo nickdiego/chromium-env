@@ -2,4 +2,5 @@
 /src/
 /tools/
 /venv/
+/ccache/
 .gclient_entries

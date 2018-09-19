@@ -39,6 +39,7 @@ fi
 
 # Setup ccache
 LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
+export CCACHE_DIR="${chromiumdir}/ccache"
 export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export PATH="$LLVM_BIN_DIR:$PATH"
@@ -46,11 +47,14 @@ export PATH="$LLVM_BIN_DIR:$PATH"
 chr_config() {
     opts=(
         'use_ozone=true'
-        'enable_mus=true'
         'use_xkbcommon=true'
+        'use_jumbo_build=true'
         'enable_nacl=false'
-        'symbol_level=1'
     )
+    if true; then  # TODO cmdline option?
+        opts+=( 'symbol_level=1' )
+    fi
+
     if true; then  # TODO cmdline option?
         opts+=( 'cc_wrapper="ccache"' )
     fi
