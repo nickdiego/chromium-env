@@ -23,7 +23,7 @@ if [ -r "$depot" ]; then
         source "${depot}/gclient_completion.sh"
     fi
 
-    chromiun_venv=${CHROMIUM_VENV:-~/venvs/chromium}
+    chromiun_venv=${CHROMIUM_VENV:-${chromiumdir}/venv}
     if [ -d ${chromium_venv} ]; then
         source ${chromiun_venv}/bin/activate
     else
