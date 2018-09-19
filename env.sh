@@ -13,6 +13,10 @@ chromiumdir=$(cd `dirname $thisscript`; pwd)
 srcdir="${chromiumdir}/src"
 builddir="out/Ozone"
 
+if test -r ~/.boto; then
+    export NO_AUTH_BOTO_CONFIG=~/.boto
+fi
+
 # Setup depot_tools
 depot="${chromiumdir}/tools/depot_tools"
 if [ -r "$depot" ]; then
