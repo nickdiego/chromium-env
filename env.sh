@@ -71,7 +71,8 @@ chr_build() {
 
 chr_run() {
     opts=(
-        '--mus'
+        '--ozone-platform=wayland'
+        '--in-process-gpu'
         '--no-sandbox'
     )
     cmd="${builddir}/chrome ${opts[*]}"
