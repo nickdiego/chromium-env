@@ -1,6 +1,7 @@
 *~
 /src/
-/tools/
+/tools/*
+!tools/depot_tools
 /venv/
 /ccache/
 .gclient_entries
