@@ -9,40 +9,37 @@ else
     exit 1
 fi
 
-chromiumdir=$(cd `dirname $thisscript`; pwd)
+chromiumdir="$(cd $(dirname $thisscript); pwd)"
 srcdir="${chromiumdir}/src"
 builddir="out/Ozone"
+chromium_venv="${CHROMIUM_VIRTUALENV_PATH:-${chromiumdir}/venv}"
 
 if test -r ~/.boto; then
     export NO_AUTH_BOTO_CONFIG=~/.boto
 fi
 
-# Setup depot_tools
-depot="${chromiumdir}/tools/depot_tools"
-if [ -r "$depot" ]; then
-    export PATH="${depot}:$PATH"
+_has() {
+    type $1 >/dev/null 2>&1
+}
 
-    if [ -n "$BASH_VERSION" ]; then
-        echo "Laoading bash completion to 'gclient' command"
-        source "${depot}/gclient_completion.sh"
-    fi
+chr_bootstrap() {
+    echo "## Trying to bootstrap chromium env ${1:+(reason: $1)}" >&2
 
-    chromiun_venv=${CHROMIUM_VENV:-${chromiumdir}/venv}
-    if [ -d ${chromium_venv} ]; then
-        source ${chromiun_venv}/bin/activate
+    _has git || { echo "!! Error: git not installed" >&2; return 1; }
+    _has virtualenv || { echo "!! Error: virtualenv not installed" >&2; return 1; }
+
+    GIT_DIR="${chromiumdir}/.git" git submodule update --init --recursive
+    test -d "${chromiumdir}/venv" || virtualenv -p python2 "${chromiumdir}/venv"
+
+    if [ $? -ne 0 ]; then
+        echo "WARN: Bootstrap failed!" >&2
+        return 1
     else
-        echo "WARNING: chromium python virtualenv not found [${chromiun_venv}]!"
+        source $thisscript
+        echo "Bootstrap done."
+        return 0
     fi
-else
-    echo "WARNING: depot_tools dir does not exists [$depot]"
-fi
-
-# Setup ccache
-LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
-export CCACHE_DIR="${chromiumdir}/ccache"
-export CCACHE_CPP2=yes
-export CCACHE_SLOPPINESS=time_macros
-export PATH="$LLVM_BIN_DIR:$PATH"
+}
 
 chr_config() {
     opts=(
@@ -79,3 +76,30 @@ chr_run() {
     echo "Running cmd: $cmd"
     eval "$cmd"
 }
+
+# Setup depot_tools
+depot="${chromiumdir}/tools/depot_tools"
+if [ -r "$depot" ]; then
+    export PATH="${depot}:$PATH"
+
+    if [ -n "$BASH_VERSION" ]; then
+        echo "Laoading bash completion to 'gclient' command"
+        source "${depot}/gclient_completion.sh"
+    fi
+
+    if test -r ${chromium_venv}/bin/activate; then
+        source ${chromium_venv}/bin/activate
+    else
+        chr_bootstrap "chromium virtualenv not found"
+    fi
+else
+    chr_bootstrap "depot_tools not found"
+fi
+
+# Setup ccache
+LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
+export CCACHE_DIR="${chromiumdir}/ccache"
+export CCACHE_CPP2=yes
+export CCACHE_SLOPPINESS=time_macros
+export PATH="$LLVM_BIN_DIR:$PATH"
+
