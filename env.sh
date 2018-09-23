@@ -39,11 +39,11 @@ chr_bootstrap() {
     fi
 }
 
-_config_opts=( wayland x11 --release)
+_config_opts=( wayland x11 --release --no-jumbo)
 chr_setconfig() {
     local config='wayland'
-    local release=0
-    gn_args=( 'use_jumbo_build=true' 'enable_nacl=false' )
+    local release=0 jumbo=1
+    gn_args=( 'enable_nacl=false' )
 
     while (( $# )); do
         case $1 in
@@ -57,9 +57,30 @@ chr_setconfig() {
             --release)
                 release=1
                 ;;
+            --no-jumbo)
+                jumbo=0
+                ;;
         esac
         shift
     done
+
+    if (( jumbo )); then
+        gn_args+=( 'use_jumbo_build=true' )
+        # FIXME Check if this is needed in latest master
+        # and report bug if necessary:
+        # third_party/blink/renderer/core/svg/svg_foreign_object_element.cc
+        # Fails to compile with jumbo builds:
+        # Error:
+        #
+        # ../../../third_party/blink/renderer/core/css/css_property_id_templates.h:18:8: error: explicit specialization of 'WTF::HashTraits<blink::CSSPropertyID>' after instantiation
+        # struct HashTraits<blink::CSSPropertyID>
+        #        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ../../../third_party/blink/renderer/platform/wtf/hash_map.h:71:20: note: implicit instantiation first required here
+        #   typedef typename MappedTraits::TraitType MappedType;
+        #                    ^
+        # 1 error generated.
+        gn_args+=( 'jumbo_build_excluded=["svg"]' )
+    fi
 
     if (( release )); then
         builddir_base='out/release'
