@@ -11,7 +11,6 @@ fi
 
 chromiumdir="$(cd $(dirname $thisscript); pwd)"
 srcdir="${chromiumdir}/src"
-chromium_venv="${CHROMIUM_VIRTUALENV_PATH:-${chromiumdir}/venv}"
 gn_args=()
 
 _has() {
@@ -22,10 +21,13 @@ chr_bootstrap() {
     echo "## Trying to bootstrap chromium env ${1:+(reason: $1)}" >&2
 
     _has git || { echo "!! Error: git not installed" >&2; return 1; }
-    _has virtualenv || { echo "!! Error: virtualenv not installed" >&2; return 1; }
+    _has python2 || { echo "!! Error: python2 not installed" >&2; return 1; }
 
     GIT_DIR="${chromiumdir}/.git" git submodule update --init --recursive
-    test -d "${chromiumdir}/venv" || virtualenv -p python2 "${chromiumdir}/venv"
+    if [ ! -L "${chromiumdir}/tools/bin/python" ]; then
+        mkdir -pv ${chromiumdir}/tools/bin
+        ln -sv $(which python2) ${chromiumdir}/tools/bin/python
+    fi
 
     if [ $? -ne 0 ]; then
         echo "WARN: Bootstrap failed!" >&2
@@ -116,10 +118,11 @@ if [ -r "$depot" ]; then
         source "${depot}/gclient_completion.sh"
     fi
 
-    if test -r ${chromium_venv}/bin/activate; then
-        source ${chromium_venv}/bin/activate
+    py2path="${chromiumdir}/tools/bin"
+    if [ -d "$py2path" ]; then
+        export PATH="${py2path}:${PATH}"
     else
-        chr_bootstrap "chromium virtualenv not found"
+        chr_bootstrap "python2 wrapper not found"
     fi
 else
     chr_bootstrap "depot_tools not found"
