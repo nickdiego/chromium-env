@@ -85,7 +85,10 @@ chr_config() {
 
 chr_build() {
     target="${1:-chrome}"
-    ninja -C "$builddir" "$target"
+    cmd="ninja -C $builddir $target"
+    echo "Running cmd: $cmd"
+    ( cd "$srcdir" && eval "$cmd" )
+
 }
 
 chr_run() {
