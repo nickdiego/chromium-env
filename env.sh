@@ -154,5 +154,9 @@ export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export PATH="$LLVM_BIN_DIR:$PATH"
 
-chr_setconfig
+
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:-wayland}"
+CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:-'--release'}"
+
+chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
