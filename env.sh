@@ -39,22 +39,23 @@ chr_bootstrap() {
     fi
 }
 
-_config_opts=( wayland x11 --release --no-jumbo)
+_config_opts=( --wayland --x11 --release --no-jumbo --no-system-gbm)
 chr_setconfig() {
-    local config='wayland'
-    local release=0 jumbo=1
+    local release=1 jumbo=1 system_gbm=1
+    local graphics='wayland'
+    # TODO: automatically find out this
+    local branch='downstream'
+
+    # output
     gn_args=( 'enable_nacl=false' )
 
     while (( $# )); do
         case $1 in
-            wayland)
-                buildvar="Ozone"
-                gn_args+=( 'use_ozone=true' 'use_xkbcommon=true' )
-                # TODO: Disable for upstream/master (?) as it's not supported yet
-                gn_args+=( 'use_system_minigbm=true' )
+            --wayland)
+                graphics="ozone"
                 ;;
-            x11)
-                buildvar="Default"
+            --x11)
+                graphics="x11"
                 ;;
             --release)
                 release=1
@@ -62,9 +63,19 @@ chr_setconfig() {
             --no-jumbo)
                 jumbo=0
                 ;;
+            --no-system-gbm)
+                system_gbm=0
+                ;;
+            *)
+                branch=$1
+                ;;
         esac
         shift
     done
+
+    if [[ "$graphics" == 'wayland' ]]; then
+        gn_args+=( 'use_ozone=true' 'use_xkbcommon=true' )
+    fi
 
     if (( jumbo )); then
         gn_args+=( 'use_jumbo_build=true' )
@@ -79,11 +90,14 @@ chr_setconfig() {
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
     fi
 
+    # TODO: Disable for upstream/master as it's not supported yet
+    (( system_gbm )) && gn_args+=( 'use_system_minigbm=true' )
+
     if true; then  # TODO cmdline option?
         gn_args+=( 'cc_wrapper="ccache"' )
     fi
 
-    builddir="${builddir_base}/${buildvar}"
+    builddir="${builddir_base}/${branch}/${graphics}"
 }
 
 chr_config() {
@@ -111,7 +125,7 @@ chr_run() {
     local weston_ws=2
     _has 'i3-msg' && i3-msg workspace $weston_ws
     echo "Running cmd: $cmd"
-    eval "$cmd"
+    (cd "$srcdir" && eval "$cmd" )
 }
 
 # bash/zsh completion
