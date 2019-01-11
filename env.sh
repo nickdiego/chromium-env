@@ -107,7 +107,9 @@ chr_run() {
         '--ozone-platform=wayland'
         '--no-sandbox'
     )
-    cmd="${builddir}/chrome ${opts[*]} $*"
+    local cmd="${builddir}/chrome ${opts[*]} $*"
+    local weston_ws=2
+    _has 'i3-msg' && i3-msg workspace $weston_ws
     echo "Running cmd: $cmd"
     eval "$cmd"
 }
