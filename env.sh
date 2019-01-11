@@ -73,6 +73,7 @@ chr_setconfig() {
     if (( release )); then
         builddir_base='out/release'
         gn_args+=( 'is_debug=false' )
+        gn_args+=( 'symbol_level=2' 'dcheck_always_on=true' ) # make it more debuggable even for release builds
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
