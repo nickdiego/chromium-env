@@ -50,6 +50,8 @@ chr_setconfig() {
             wayland)
                 buildvar="Ozone"
                 gn_args+=( 'use_ozone=true' 'use_xkbcommon=true' )
+                # TODO: Disable for upstream/master (?) as it's not supported yet
+                gn_args+=( 'use_system_minigbm=true' )
                 ;;
             x11)
                 buildvar="Default"
@@ -66,20 +68,6 @@ chr_setconfig() {
 
     if (( jumbo )); then
         gn_args+=( 'use_jumbo_build=true' )
-        # FIXME Check if this is needed in latest master
-        # and report bug if necessary:
-        # third_party/blink/renderer/core/svg/svg_foreign_object_element.cc
-        # Fails to compile with jumbo builds:
-        # Error:
-        #
-        # ../../../third_party/blink/renderer/core/css/css_property_id_templates.h:18:8: error: explicit specialization of 'WTF::HashTraits<blink::CSSPropertyID>' after instantiation
-        # struct HashTraits<blink::CSSPropertyID>
-        #        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # ../../../third_party/blink/renderer/platform/wtf/hash_map.h:71:20: note: implicit instantiation first required here
-        #   typedef typename MappedTraits::TraitType MappedType;
-        #                    ^
-        # 1 error generated.
-        gn_args+=( 'jumbo_build_excluded=["svg"]' )
     fi
 
     if (( release )); then
@@ -99,21 +87,22 @@ chr_setconfig() {
 
 chr_config() {
     chr_setconfig $@
-    cmd="gn gen \"$builddir\" --args='${gn_args[*]}'"
+    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}'"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 }
 
 chr_build() {
-    target="${1:-chrome}"
-    cmd="ninja -C $builddir $target"
+    local target="${1:-chrome}"
+    local wrapper='time'
+    local cmd="$wrapper ninja -C $builddir $target"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 
 }
 
 chr_run() {
-    opts=(
+    local opts=(
         '--ozone-platform=wayland'
         '--in-process-gpu'
         '--no-sandbox'
