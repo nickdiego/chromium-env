@@ -73,7 +73,7 @@ chr_setconfig() {
         shift
     done
 
-    if [[ "$graphics" == 'wayland' ]]; then
+    if [[ "$graphics" == 'ozone' ]]; then
         gn_args+=( 'use_ozone=true' 'use_xkbcommon=true' )
     fi
 
@@ -169,8 +169,8 @@ export CCACHE_SLOPPINESS=time_macros
 export PATH="$LLVM_BIN_DIR:$PATH"
 
 
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:-wayland}"
-CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:-'--release'}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---wayland}"
+CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
