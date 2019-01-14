@@ -39,7 +39,7 @@ chr_bootstrap() {
     fi
 }
 
-_config_opts=( --wayland --x11 --release --no-jumbo --no-system-gbm)
+_config_opts=( --wayland --x11 --release --no-jumbo --no-system-gbm upstream downstream )
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1
     local graphics='wayland'
