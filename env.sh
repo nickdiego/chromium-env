@@ -117,7 +117,7 @@ chr_config() {
 }
 
 chr_build() {
-    local target="${1:-chrome}"
+    local target="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $target"
     echo "Running cmd: $cmd"
