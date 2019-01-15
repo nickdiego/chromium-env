@@ -93,7 +93,7 @@ chr_setconfig() {
     fi
 
     # TODO: Disable for upstream/master as it's not supported yet
-    (( system_gbm )) && gn_args+=( 'use_system_minigbm=true' )
+    (( system_gbm )) && gn_args+=( 'use_intel_minigbm=true' )
 
     if true; then  # TODO cmdline option?
         gn_args+=( 'cc_wrapper="ccache"' )
