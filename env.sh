@@ -13,6 +13,8 @@ chromiumdir="$(cd $(dirname $thisscript); pwd)"
 srcdir="${chromiumdir}/src"
 gn_args=()
 
+CHR_USE_ICECC=${CHR_USE_ICECC:-1}
+
 _has() {
     type $1 >/dev/null 2>&1
 }
@@ -83,8 +85,8 @@ chr_setconfig() {
 
     if (( release )); then
         builddir_base='out/release'
-        gn_args+=( 'is_debug=false' )
-        gn_args+=( 'symbol_level=2' 'dcheck_always_on=true' ) # make it more debuggable even for release builds
+        gn_args+=( 'is_debug=false' 'remove_webcore_debug_symbols=true' )
+        gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' ) # make it more debuggable even for release builds
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
@@ -97,7 +99,14 @@ chr_setconfig() {
         gn_args+=( 'cc_wrapper="ccache"' )
     fi
 
+    if (( CHR_USE_ICECC )); then
+        gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
+    fi
+
     builddir="${builddir_base}/${branch}/${graphics}"
+
+    # Keep this at the end of this function
+    chr_icecc_setup >/dev/null
 }
 
 chr_config() {
@@ -126,6 +135,36 @@ chr_run() {
     _has 'i3-msg' && i3-msg workspace $weston_ws
     echo "Running cmd: $cmd"
     (cd "$srcdir" && eval "$cmd" )
+}
+
+chr_icecc_setup() {
+    # 2. Update icecc bundle
+    (( CHR_USE_ICECC )) || return 0
+    test -d $ICECC_INSTALL_DIR || { echo "icecc install dir not found"; return 1; }
+    test -x $ICECC_CREATEENV || { echo "icecc-create-env not found"; return 1; }
+    test -x $ICECC_CCWRAPPER || { echo "icecc compilerwrapper not found"; return 1; }
+
+    local icecc_bundle_path="${ICECC_DATA_DIR}/icecc_clang.tgz"
+
+    if [[ "$1x" == "-ux" ]]; then
+        echo "Updating icecc bundle: ${icecc_bundle_path}"
+        local logfile="/tmp/chr_sync.log"
+        # Update icecc bundle accoring to current config
+        mkdir -pv $ICECC_DATA_DIR
+        (
+            set -e
+            cd $(mktemp -d)
+            eval "$ICECC_CREATEENV --clang ${LLVM_BIN_DIR}/clang &>$logfile"
+            mv -f *.tar.gz $icecc_bundle_path
+        )
+    fi
+
+    # Export config vars
+    export ICECC_CLANG_REMOTE_CPP=1
+    export ICECC_VERSION=$icecc_bundle_path
+    export CCACHE_PREFIX='icecc'
+    export PATH="${ICECC_INSTALL_DIR}/bin:$PATH"
+    echo 'Done.'
 }
 
 # bash/zsh completion
@@ -168,9 +207,13 @@ export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export PATH="$LLVM_BIN_DIR:$PATH"
 
-
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---wayland}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
+
+ICECC_DATA_DIR="${chromiumdir}/icecc"
+ICECC_INSTALL_DIR=${ICECC_INSTALL_DIR:-/usr/lib/icecream}
+ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
+ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
