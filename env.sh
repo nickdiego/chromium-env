@@ -103,6 +103,10 @@ chr_setconfig() {
         gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
     fi
 
+    # FIXME: Mainly when using icecc, for some reason, we get
+    # some compiling warnings, so we disable warning-as-error for now
+    gn_args+=( 'treat_warnings_as_errors=false' )
+
     builddir="${builddir_base}/${branch}/${graphics}"
 
     # Keep this at the end of this function
