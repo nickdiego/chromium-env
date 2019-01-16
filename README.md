@@ -7,25 +7,24 @@ building and running chrome and other chromium artifacts/tools.
 
 *Tested only on Arch Linux with recent versions of bash and zsh*
 
-A common setup would be cloning it in `$HOME`, for example and, after
-[having installed the system dependencies](https://chromium.googlesource.com/chromium/src/+/master/docs/linux_build_instructions.md#Install-additional-build-dependencies), run:
+A common setup would be cloning it in `$HOME`, for example. After
+[having installed the system dependencies](https://chromium.googlesource.com/chromium/src/+/master/docs/linux_build_instructions.md#Install-additional-build-dependencies), run the following to bootstrap the env:
 
 ```sh
-cd <path/to/this/repo> && source env.sh
-chr_bootstrap
+source env.sh && chr_bootstrap
 ```
-
 This will run some sanity checks, download `depot_tools`, configure right python
 interpreter (if needed) and set some env variables, needed for the next steps.
 
+*From now on, we assume you're in a shell with `env.sh` sourced.*
+
 #### Syncing the source files
 
-Assuming you're in a shell with `env.sh` sourced, run:
+Fetching chromium sources at `<path/to/this/repo>/src`.
 
 ```sh
 gclient sync
 ```
-Which will fetch chromium source code at `<path/to/this/repo>/src`.
 
 #### Setting up ICECC
 
