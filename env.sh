@@ -158,9 +158,11 @@ chr_icecc_setup() {
         (
             set -e
             cd $(mktemp -d)
-            eval "$ICECC_CREATEENV --clang ${LLVM_BIN_DIR}/clang &>$logfile"
+            eval "$ICECC_CREATEENV --clang ${LLVM_BIN_DIR}/clang"
             mv -f *.tar.gz $icecc_bundle_path
-        )
+            # Make sure we have a large enough space for ccache
+            ccache -M $CCACHE_SIZE
+        ) &>$logfile
     fi
 
     # Export config vars
@@ -207,6 +209,7 @@ fi
 # Setup ccache
 LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
 export CCACHE_DIR="${chromiumdir}/ccache"
+export CCACHE_SIZE="${CCACHE_SIZE:-20G}"
 export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export PATH="$LLVM_BIN_DIR:$PATH"
