@@ -4,4 +4,5 @@
 !tools/depot_tools
 /venv/
 /ccache/
+/icecc/
 .gclient_entries
