@@ -1,10 +1,14 @@
-### Chromium devel helper scripts
+### My chromium development env
 
 Intended to be used as root/container directory for chromium development files
-(source files, tools, configuration and other kind of files involved).
-So a common setup is to clone it in `$HOME`, for example and, after [having
-installed the system dependencies](https://chromium.googlesource.com/chromium/src/+/master/docs/linux_build_instructions.md#Install-additional-build-dependencies),
-run:
+(source files, tools, configuration and other kind of files involved), this repo
+provides a set of shell helper functions/scripts to speedup bootstrap, setting up,
+building and running chrome and other chromium artifacts/tools.
+
+*Tested only on Arch Linux with recent versions of bash and zsh*
+
+A common setup would be cloning it in `$HOME`, for example and, after
+[having installed the system dependencies](https://chromium.googlesource.com/chromium/src/+/master/docs/linux_build_instructions.md#Install-additional-build-dependencies), run:
 
 ```sh
 cd <path/to/this/repo> && source env.sh
@@ -13,8 +17,6 @@ chr_bootstrap
 
 This will run some sanity checks, download `depot_tools`, configure right python
 interpreter (if needed) and set some env variables, needed for the next steps.
-
-*Tested only on Arch Linux for now*
 
 #### Syncing the source files
 
