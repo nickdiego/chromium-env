@@ -124,6 +124,7 @@ chr_build() {
     local target="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $target"
+    ccache --zero-stats
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 
