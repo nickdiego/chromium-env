@@ -207,21 +207,25 @@ if test -r ~/.boto; then
     export NO_AUTH_BOTO_CONFIG=~/.boto
 fi
 
-# Setup ccache
 LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
+export PATH="$LLVM_BIN_DIR:$PATH"
+
+# Setup ccache
 export CCACHE_DIR="${chromiumdir}/ccache"
 export CCACHE_SIZE="${CCACHE_SIZE:-20G}"
 export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
-export PATH="$LLVM_BIN_DIR:$PATH"
+export CCACHE_DEPEND=true
 
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---wayland}"
-CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
-
+# Basic icecc setup (the remaining is done in `chr_icecc_setup` function)
 ICECC_DATA_DIR="${chromiumdir}/icecc"
 ICECC_INSTALL_DIR=${ICECC_INSTALL_DIR:-/usr/lib/icecream}
 ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
 ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
+
+# Default config params
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---wayland}"
+CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
