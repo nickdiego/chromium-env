@@ -41,29 +41,36 @@ chr_bootstrap() {
     fi
 }
 
-_config_opts=( --wayland --x11 --release --no-jumbo --no-system-gbm upstream downstream )
+_config_opts=(--ozone --x11 --cros --release --no-jumbo
+              --no-ccache --no-system-gbm upstream downstream)
 chr_setconfig() {
-    local release=1 jumbo=1 system_gbm=1
-    local graphics='wayland'
+    local release=1 jumbo=1 system_gbm=1 use_ccache=1
     # TODO: automatically find out this
     local branch='downstream'
 
     # output
+    variant='ozone'
     gn_args=( 'enable_nacl=false' )
 
     while (( $# )); do
         case $1 in
-            --wayland)
-                graphics="ozone"
+            --ozone)
+                variant=ozone
                 ;;
             --x11)
-                graphics="x11"
+                variant=x11
+                ;;
+            --cros)
+                variant=cros
                 ;;
             --release)
                 release=1
                 ;;
             --no-jumbo)
                 jumbo=0
+                ;;
+            --no-ccache)
+                use_ccache=0
                 ;;
             --no-system-gbm)
                 system_gbm=0
@@ -75,9 +82,15 @@ chr_setconfig() {
         shift
     done
 
-    if [[ "$graphics" == 'ozone' ]]; then
-        gn_args+=( 'use_ozone=true' 'use_xkbcommon=true' )
-    fi
+    case "$variant" in
+        ozone)
+            gn_args+=('ozone_auto_platforms=false' 'use_ozone=true' 'use_xkbcommon=true'
+                      'ozone_platform_wayland=true' 'ozone_platform_x11=true')
+            ;;
+        cros)
+            gn_args+=('target_os="chromeos"')
+            ;;
+    esac
 
     if (( jumbo )); then
         gn_args+=( 'use_jumbo_build=true' )
@@ -95,7 +108,7 @@ chr_setconfig() {
     # TODO: Disable for upstream/master as it's not supported yet
     (( system_gbm )) && gn_args+=( 'use_intel_minigbm=true' )
 
-    if true; then  # TODO cmdline option?
+    if (( use_ccache )); then
         gn_args+=( 'cc_wrapper="ccache"' )
     fi
 
@@ -107,7 +120,7 @@ chr_setconfig() {
     # some compiling warnings, so we disable warning-as-error for now
     gn_args+=( 'treat_warnings_as_errors=false' )
 
-    builddir="${builddir_base}/${branch}/${graphics}"
+    builddir="${builddir_base}/${branch}/${variant}"
 
     # Keep this at the end of this function
     chr_icecc_setup >/dev/null
@@ -121,9 +134,9 @@ chr_config() {
 }
 
 chr_build() {
-    local target="${@:-chrome}"
+    local artifact="${@:-chrome}"
     local wrapper='time'
-    local cmd="$wrapper ninja -C $builddir $target"
+    local cmd="$wrapper ninja -C $builddir $artifact"
     ccache --zero-stats
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
@@ -131,15 +144,31 @@ chr_build() {
 }
 
 chr_run() {
-    local opts=(
-        '--ozone-platform=wayland'
-        '--no-sandbox'
-    )
-    local cmd="${builddir}/chrome ${opts[*]} $*"
+    declare -a opts
+    local user_dir
     local weston_ws=2
-    _has 'i3-msg' && i3-msg workspace $weston_ws
+    local clear=1 # FIXME: param?
+
+    case "$variant" in
+        ozone)
+            opts+=('--ozone-platform=wayland' '--no-sandbox')
+            _has 'i3-msg' && i3-msg workspace $weston_ws
+            ;;
+        cros)
+            user_dir='/tmp/chr_cros'
+            ;;
+    esac
+    user_dir=${user_dir:-/tmp/chr_tmp}
+    opts+=("--user-data-dir=${user_dir}")
+
+    if (( clear )) && [ -n "$user_dir" ]; then
+        echo "Cleaning ${user_dir}"
+        test -d "$user_dir" && rm -rf "$user_dir"
+    fi
+
+    local cmd="${builddir}/chrome ${opts[*]} $*"
     echo "Running cmd: $cmd"
-    (cd "$srcdir" && eval "$cmd" )
+    ( cd "$srcdir" && eval "$cmd" )
 }
 
 chr_icecc_setup() {
@@ -212,7 +241,7 @@ export PATH="$LLVM_BIN_DIR:$PATH"
 
 # Setup ccache
 export CCACHE_DIR="${chromiumdir}/ccache"
-export CCACHE_SIZE="${CCACHE_SIZE:-20G}"
+export CCACHE_SIZE="${CCACHE_SIZE:-50G}"
 export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export CCACHE_DEPEND=true
@@ -224,7 +253,7 @@ ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
 ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
 
 # Default config params
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---wayland}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---ozone}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
