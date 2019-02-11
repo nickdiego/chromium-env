@@ -241,7 +241,7 @@ export PATH="$LLVM_BIN_DIR:$PATH"
 
 # Setup ccache
 export CCACHE_DIR="${chromiumdir}/ccache"
-export CCACHE_SIZE="${CCACHE_SIZE:-50G}"
+export CCACHE_SIZE="${CHR_CCACHE_SIZE:-50G}"
 export CCACHE_CPP2=yes
 export CCACHE_SLOPPINESS=time_macros
 export CCACHE_DEPEND=true
