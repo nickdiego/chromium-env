@@ -6,3 +6,5 @@
 /ccache/
 /icecc/
 .gclient_entries
+/.cipd/
+/doc/
