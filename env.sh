@@ -42,15 +42,17 @@ chr_bootstrap() {
 }
 
 _config_opts=(--ozone --x11 --cros --release --no-jumbo
-              --no-ccache --no-system-gbm upstream downstream)
+              --no-ccache --no-system-gbm --check
+              upstream downstream)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
     # TODO: automatically find out this
-    local branch='downstream'
+    local branch='upstream'
 
     # output
     variant='ozone'
     gn_args=( 'enable_nacl=false' )
+    extra_gn_args=( )
 
     while (( $# )); do
         case $1 in
@@ -75,6 +77,9 @@ chr_setconfig() {
             --no-system-gbm)
                 system_gbm=0
                 ;;
+            --*)
+                extra_gn_args+=( "$1" )
+                ;;
             *)
                 branch=$1
                 ;;
@@ -88,7 +93,7 @@ chr_setconfig() {
                       'ozone_platform_wayland=true' 'ozone_platform_x11=true')
             ;;
         cros)
-            gn_args+=('target_os="chromeos"')
+            gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
             ;;
     esac
 
@@ -128,7 +133,7 @@ chr_setconfig() {
 
 chr_config() {
     chr_setconfig $@
-    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}'"
+    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}' ${extra_gn_args[@]}"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 }
