@@ -91,6 +91,8 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true' 'use_xkbcommon=true'
                       'ozone_platform_wayland=true' 'ozone_platform_x11=true')
+            # TODO: Disable for upstream/master as it's not supported yet
+            (( system_gbm )) && gn_args+=( 'use_intel_minigbm=true' )
             ;;
         cros)
             gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
@@ -109,9 +111,6 @@ chr_setconfig() {
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
     fi
-
-    # TODO: Disable for upstream/master as it's not supported yet
-    (( system_gbm )) && gn_args+=( 'use_intel_minigbm=true' )
 
     if (( use_ccache )); then
         gn_args+=( 'cc_wrapper="ccache"' )
