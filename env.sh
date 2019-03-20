@@ -91,8 +91,8 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true' 'use_xkbcommon=true'
                       'ozone_platform_wayland=true' 'ozone_platform_x11=true')
-            # TODO: Disable for upstream/master as it's not supported yet
-            (( system_gbm )) && gn_args+=( 'use_intel_minigbm=true' )
+            (( system_gbm )) &&
+                gn_args+=( 'use_system_minigbm=true' 'use_system_libdrm=true')
             ;;
         cros)
             gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
