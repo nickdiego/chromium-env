@@ -105,7 +105,7 @@ chr_setconfig() {
 
     if (( release )); then
         builddir_base='out/release'
-        gn_args+=( 'is_debug=false' 'remove_webcore_debug_symbols=true' )
+        gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
         gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' ) # make it more debuggable even for release builds
     else
         builddir_base='out/debug'
