@@ -150,8 +150,8 @@ chr_build() {
 chr_run() {
     declare -a opts
     local user_dir
-    local weston_ws=2
-    local clear=1 # FIXME: param?
+    local wayland_ws=wayland
+    local clear=${clear:-1}
     local ozone_plat_default=wayland
 
     case "$variant" in
@@ -176,9 +176,9 @@ chr_run() {
         extra_args+="--ozone-platform=${ozone_plat_default}"
     fi
     # If running wayland compositor in an i3 session, move to the
-    # $weston_ws workspace
+    # $wayland_ws workspace
     [[ "$extra_args" =~ --ozone-platform=wayland ]] && \
-        _has 'i3-msg' && i3-msg workspace $weston_ws
+        _has 'i3-msg' && i3-msg workspace $wayland_ws
 
     local cmd="${builddir}/chrome ${opts[*]} $extra_args"
     echo "Running cmd: $cmd"
