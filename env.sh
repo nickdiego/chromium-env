@@ -41,13 +41,26 @@ chr_bootstrap() {
     fi
 }
 
+chr_ccache_setup() {
+    if [ -z $variant ]; then
+        echo "!! Error: Cannot setup ccache with no \$variant set!" >&2
+        echo "!! Run chr_config ??" >&2
+        return 1
+    fi
+
+    export CCACHE_DIR="${chromiumdir}/ccache/${variant}"
+    export CCACHE_CPP2=yes
+    export CCACHE_SLOPPINESS=time_macros
+    export CCACHE_DEPEND=true
+    export CCACHE_CONFIG_FILE="${CCACHE_DIR}/ccache.conf"
+    grep -qw max_size $CCACHE_CONFIG_FILE || \
+        echo "max_size = ${CHR_CCACHE_SIZE:-50G}" >> $CCACHE_CONFIG_FILE
+}
+
 _config_opts=(--ozone --x11 --cros --release --no-jumbo
-              --no-ccache --no-system-gbm --check
-              upstream downstream)
+              --no-ccache --no-system-gbm --check)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
-    # TODO: automatically find out this
-    local branch='upstream'
 
     # output
     variant='ozone'
@@ -79,9 +92,6 @@ chr_setconfig() {
                 ;;
             --*)
                 extra_gn_args+=( "$1" )
-                ;;
-            *)
-                branch=$1
                 ;;
         esac
         shift
@@ -124,10 +134,11 @@ chr_setconfig() {
     # some compiling warnings, so we disable warning-as-error for now
     gn_args+=( 'treat_warnings_as_errors=false' )
 
-    builddir="${builddir_base}/${branch}/${variant}"
+    builddir="${builddir_base}/${variant}"
 
     # Keep this at the end of this function
     chr_icecc_setup >/dev/null
+    chr_ccache_setup >/dev/null
 }
 
 chr_config() {
@@ -252,13 +263,6 @@ fi
 
 LLVM_BIN_DIR="${srcdir}/third_party/llvm-build/Release+Asserts/bin"
 export PATH="$LLVM_BIN_DIR:$PATH"
-
-# Setup ccache
-export CCACHE_DIR="${chromiumdir}/ccache"
-export CCACHE_SIZE="${CHR_CCACHE_SIZE:-50G}"
-export CCACHE_CPP2=yes
-export CCACHE_SLOPPINESS=time_macros
-export CCACHE_DEPEND=true
 
 # Basic icecc setup (the remaining is done in `chr_icecc_setup` function)
 ICECC_DATA_DIR="${chromiumdir}/icecc"
