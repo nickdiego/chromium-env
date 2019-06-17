@@ -164,10 +164,20 @@ chr_run() {
     local wayland_ws=wayland
     local clear=${clear:-1}
     local ozone_plat_default=wayland
+    local extra_args=$*
 
     case "$variant" in
         ozone)
             opts+=('--no-sandbox')
+            if [[ ! "$extra_args" =~ --ozone-platform=.+ ]]; then
+                echo "Using default ozone platform '$ozone_plat_default'"
+                extra_args+="--ozone-platform=${ozone_plat_default}"
+            fi
+            # If running wayland compositor in an i3 session, move to the
+            # $wayland_ws workspace
+            [[ "$extra_args" =~ --ozone-platform=wayland ]] && \
+                _has 'i3-msg' && i3-msg workspace $wayland_ws
+
             ;;
         cros)
             user_dir='/tmp/chr_cros'
@@ -180,16 +190,6 @@ chr_run() {
         echo "Cleaning ${user_dir}"
         test -d "$user_dir" && rm -rf "$user_dir"
     fi
-
-    local extra_args=$*
-    if [[ ! "$extra_args" =~ --ozone-platform=.+ ]]; then
-        echo "Using default ozone platform '$ozone_plat_default'"
-        extra_args+="--ozone-platform=${ozone_plat_default}"
-    fi
-    # If running wayland compositor in an i3 session, move to the
-    # $wayland_ws workspace
-    [[ "$extra_args" =~ --ozone-platform=wayland ]] && \
-        _has 'i3-msg' && i3-msg workspace $wayland_ws
 
     local cmd="${builddir}/chrome ${opts[*]} $extra_args"
     echo "Running cmd: $cmd"
