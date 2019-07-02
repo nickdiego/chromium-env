@@ -236,7 +236,8 @@ chr_list_patches() {
     local opts=('--quiet' '--changes')
     local errors=$(mktemp /tmp/chr_XXXX.log)
     local verbose=${V:-0}
-    local filter='--merged-only'
+    local status_filter='--merged-only'
+    local time_filter # Default is "last_week"
 
     if ! type "$script" &>/dev/null; then
         echo "$script not found in system \$PATH." >&2
@@ -246,14 +247,14 @@ chr_list_patches() {
         case $1 in
             -u | --user) shift && email=$1;;
             -v | --verbose) verbose=1;;
-            --merged) filter='--merged-only';;
-            --week) filter='--last_week';;
-            --year) filter='--this_year';;
+            --merged) status_filter='--merged-only';;
+            --week) time_filter='--last_week';;
+            --year) time_filter='--this_year';;
             *) opts+=("$1");;
         esac
         shift
     done
-    opts+=("-u $email" "$filter" "${opts[@]}")
+    opts+=("-u $email" "$status_filter" "$time_filter" "${opts[@]}")
 
     # Build fetch command
     local cmd="$script ${opts[@]} 2> $errors"
@@ -265,7 +266,7 @@ chr_list_patches() {
     # format and present output
     local total=$(wc -l <<< $patches)
     echo -e "Patches:\n"
-    echo "$patches" | cat $opts -
+    echo "$patches" | cat -
     echo -e "\nTotal: $total"
 }
 
