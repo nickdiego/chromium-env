@@ -228,13 +228,56 @@ chr_icecc_setup() {
     echo 'Done.'
 }
 
+_list_patches_opts=( --merged --week --year --markdown
+                     --begin= --end= --user= --verbose )
+chr_list_patches() {
+    local script=my_activity.py
+    local email=$(git config user.email)
+    local opts=('--quiet' '--changes')
+    local errors=$(mktemp /tmp/chr_XXXX.log)
+    local verbose=${V:-0}
+    local filter='--merged-only'
+
+    if ! type "$script" &>/dev/null; then
+        echo "$script not found in system \$PATH." >&2
+        return 1
+    fi
+    while (( $# )); do
+        case $1 in
+            -u | --user) shift && email=$1;;
+            -v | --verbose) verbose=1;;
+            --merged) filter='--merged-only';;
+            --week) filter='--last_week';;
+            --year) filter='--this_year';;
+            *) opts+=("$1");;
+        esac
+        shift
+    done
+    opts+=("-u $email" "$filter" "${opts[@]}")
+
+    # Build fetch command
+    local cmd="$script ${opts[@]} 2> $errors"
+    (( verbose )) && echo "cmd: '$cmd'" >&2
+
+    # Fetch and process changes from crrev server
+    local patches=$(eval "$cmd" | tail -n +3)
+
+    # format and present output
+    local total=$(wc -l <<< $patches)
+    echo -e "Patches:\n"
+    echo "$patches" | cat $opts -
+    echo -e "\nTotal: $total"
+}
+
 # bash/zsh completion
 if _has complete; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
+    complete -W "${_list_patches_opts[*]}" chr_list_patches
 elif _has compctl; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
+    compctl -k "(${_list_patches_opts[*]})" chr_list_patches
 fi
 
 # Setup depot_tools
