@@ -228,7 +228,11 @@ chr_icecc_setup() {
     echo 'Done.'
 }
 
-_list_patches_opts=( --merged --week --year --markdown
+date_offset() {
+    date -d "$(date +%m/%d/%Y) -$*" +%m/%d/%y
+}
+
+_list_patches_opts=( --merged --week --month --year --markdown
                      --begin= --end= --user= --verbose )
 chr_list_patches() {
     local script=my_activity.py
@@ -250,7 +254,12 @@ chr_list_patches() {
             --merged) status_filter='--merged-only';;
             --week) time_filter='--last_week';;
             --year) time_filter='--this_year';;
-            *) opts+=("$1");;
+            --month) time_filter="--begin=$(date +%m/01/%y)";;
+            [0-9]*d) time_filter="--begin=$(date_offset ${1:0:-1} day)";;
+            [0-9]*w) time_filter="--begin=$(date_offset ${1:0:-1} week)";;
+            [0-9]*m) time_filter="--begin=$(date_offset ${1:0:-1} month)";;
+            [0-9]*y) time_filter="--begin=$(date_offset ${1:0:-1} year)";;
+            --*) opts+=("$1");;
         esac
         shift
     done
