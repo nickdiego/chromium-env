@@ -240,7 +240,7 @@ chr_list_patches() {
     local opts=('--quiet' '--changes')
     local errors=$(mktemp /tmp/chr_XXXX.log)
     local verbose=${V:-0}
-    local status_filter='--merged-only'
+    local status_filter
     local time_filter # Default is "last_week"
 
     if ! type "$script" &>/dev/null; then
