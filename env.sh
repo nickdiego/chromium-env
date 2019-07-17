@@ -53,6 +53,8 @@ chr_ccache_setup() {
     export CCACHE_SLOPPINESS=time_macros
     export CCACHE_DEPEND=true
     export CCACHE_CONFIG_FILE="${CCACHE_DIR}/ccache.conf"
+    test -d $CCACHE_DIR || mkdir -p $CCACHE_DIR
+    test -f $CCACHE_CONFIG_FILE || touch $CCACHE_CONFIG_FILE
     grep -qw max_size $CCACHE_CONFIG_FILE || \
         echo "max_size = ${CHR_CCACHE_SIZE:-50G}" >> $CCACHE_CONFIG_FILE
 }
