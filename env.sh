@@ -159,12 +159,12 @@ chr_build() {
 }
 
 chr_run() {
-    declare -a opts
     local user_dir
     local wayland_ws=wayland
     local clear=${clear:-1}
     local ozone_plat_default=wayland
     local extra_args=$*
+    local opts=( --enable-logging=stderr )
 
     case "$variant" in
         ozone)
