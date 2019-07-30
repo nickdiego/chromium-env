@@ -70,9 +70,9 @@ So, supposing you're working on upstream features (eg: upstream/master) and wish
 to build `chrome` with Ozone/Wayland backend enabled, run:
 
 ```sh
-chr_config --wayland --release upstream
+chr_config --variant=ozone --release upstream
 ```
-This will generate build directory at `<path/to/this/repo>/src/out/release/upstream/ozone`.
+This will generate build directory at `<path/to/this/repo>/src/out/release/ozone`.
 
 #### Building
 
@@ -103,7 +103,7 @@ chr_run --user-data-dir=/tmp/x --in-process-gpu
 
 ### Focus/Scope
 
-Conceived and mainly intended to be used for Igalia's Ozone/Wayland development
+Conceived and mainly intended to be used for Igalia's Ozone/Wayland/X11 development
 workflow, Even though it should be useful for general chromium devel, some features
 such as bash/zsh completion support only ozone/wayland/linux specific bits.
 
