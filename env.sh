@@ -59,8 +59,8 @@ chr_ccache_setup() {
         echo "max_size = ${CHR_CCACHE_SIZE:-50G}" >> $CCACHE_CONFIG_FILE
 }
 
-_config_opts=(--ozone --x11 --cros --release --no-jumbo
-              --no-ccache --no-system-gbm --check)
+_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
+               --release --no-jumbo --no-ccache --no-system-gbm --check)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
 
@@ -71,14 +71,8 @@ chr_setconfig() {
 
     while (( $# )); do
         case $1 in
-            --ozone)
-                variant=ozone
-                ;;
-            --x11)
-                variant=x11
-                ;;
-            --cros)
-                variant=cros
+            --variant=*)
+                variant=${1##--variant=}
                 ;;
             --release)
                 release=1
@@ -111,9 +105,18 @@ chr_setconfig() {
             ;;
     esac
 
-    if (( jumbo )); then
-        gn_args+=( 'use_jumbo_build=true' )
-    fi
+    for arg in "${extra_gn_args}"; do
+        if [[ ! "$arg" =~ --args=.+ ]]; then
+            gn_args+=("$arg")
+            continue
+        fi
+        local args_val=$(eval "echo ${arg##--args=}")
+        gn_args+=($args_val)
+    done
+
+    (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
+    (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
+    (( CHR_USE_ICECC )) && gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
 
     if (( release )); then
         builddir_base='out/release'
@@ -122,14 +125,6 @@ chr_setconfig() {
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
-    fi
-
-    if (( use_ccache )); then
-        gn_args+=( 'cc_wrapper="ccache"' )
-    fi
-
-    if (( CHR_USE_ICECC )); then
-        gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
     fi
 
     # FIXME: Mainly when using icecc, for some reason, we get
@@ -145,7 +140,7 @@ chr_setconfig() {
 
 chr_config() {
     chr_setconfig $@
-    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}' ${extra_gn_args[@]}"
+    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}'"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 }
