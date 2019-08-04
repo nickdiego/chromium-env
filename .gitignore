@@ -8,3 +8,4 @@
 .gclient_entries
 /.cipd/
 /doc/
+/chromium-ozone-pkgbuild/
