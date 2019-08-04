@@ -107,7 +107,7 @@ chr_setconfig() {
 
     for arg in "${extra_gn_args}"; do
         if [[ ! "$arg" =~ --args=.+ ]]; then
-            gn_args+=("$arg")
+            gn_opts+=("$arg")
             continue
         fi
         local args_val=$(eval "echo ${arg##--args=}")
@@ -140,7 +140,7 @@ chr_setconfig() {
 
 chr_config() {
     chr_setconfig $@
-    local cmd="gn gen \"$builddir\" --args='${gn_args[*]}'"
+    local cmd="gn gen \"$builddir\" ${gn_opts[@]} --args='${gn_args[*]}'"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 }
