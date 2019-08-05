@@ -41,6 +41,14 @@ chr_bootstrap() {
     fi
 }
 
+ccache_ensure_config() {
+    local config_file=$1 key=$2 value=$3
+    local config_file_dir=$(dirname $config_file)
+    test -d $config_file_dir || mkdir -p $config_file_dir
+    test -f $config_file || touch $config_file
+    grep -qw $key $config_file || echo "$key = $value" >> $config_file
+}
+
 chr_ccache_setup() {
     if [ -z $variant ]; then
         echo "!! Error: Cannot setup ccache with no \$variant set!" >&2
@@ -48,15 +56,13 @@ chr_ccache_setup() {
         return 1
     fi
 
+    export CCACHE_BASEDIR=$chromiumdir
     export CCACHE_DIR="${chromiumdir}/ccache/${variant}"
     export CCACHE_CPP2=yes
-    export CCACHE_SLOPPINESS=time_macros
+    export CCACHE_SLOPPINESS='include_file_mtime,time_macros'
     export CCACHE_DEPEND=true
-    export CCACHE_CONFIG_FILE="${CCACHE_DIR}/ccache.conf"
-    test -d $CCACHE_DIR || mkdir -p $CCACHE_DIR
-    test -f $CCACHE_CONFIG_FILE || touch $CCACHE_CONFIG_FILE
-    grep -qw max_size $CCACHE_CONFIG_FILE || \
-        echo "max_size = ${CHR_CCACHE_SIZE:-50G}" >> $CCACHE_CONFIG_FILE
+    ccache_ensure_config "${CCACHE_DIR}/ccache.conf" \
+        max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
@@ -221,8 +227,6 @@ chr_icecc_setup() {
             cd $(mktemp -d)
             eval "$ICECC_CREATEENV --clang ${LLVM_BIN_DIR}/clang"
             mv -f *.tar.gz $icecc_bundle_path
-            # Make sure we have a large enough space for ccache
-            ccache -M $CCACHE_SIZE
         ) &>$logfile
     fi
 
