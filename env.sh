@@ -60,9 +60,10 @@ chr_ccache_setup() {
 }
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
-               --release --no-jumbo --no-ccache --no-system-gbm --check)
+               --release --no-jumbo --no-ccache --no-system-gbm --component --check)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
+    local component=0 # experimental
 
     # output
     variant='ozone'
@@ -85,6 +86,10 @@ chr_setconfig() {
                 ;;
             --no-system-gbm)
                 system_gbm=0
+                ;;
+            --component)
+                component=1
+                jumbo=0
                 ;;
             --*)
                 extra_gn_args+=( "$1" )
@@ -117,6 +122,10 @@ chr_setconfig() {
     (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
     (( CHR_USE_ICECC )) && gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
+    if (( component )); then
+        gn_args+=( 'is_component_build=true' )
+        variant+='-component'
+    fi
 
     if (( release )); then
         builddir_base='out/release'
