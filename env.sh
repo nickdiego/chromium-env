@@ -65,16 +65,17 @@ chr_ccache_setup() {
         max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
-_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
-               --release --no-jumbo --no-ccache --no-system-gbm --component --check)
+_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --release
+               --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
     local component=0 # experimental
+    local use_glib=0
 
     # output
     variant='ozone'
     gn_args=( 'enable_nacl=false' )
-    extra_gn_args=( )
+    extra_gn_args=()
 
     while (( $# )); do
         case $1 in
@@ -93,12 +94,15 @@ chr_setconfig() {
             --no-system-gbm)
                 system_gbm=0
                 ;;
+            --use-glib)
+                use_glib=1
+                ;;
             --component)
                 component=1
                 jumbo=0
                 ;;
             --*)
-                extra_gn_args+=( "$1" )
+                extra_gn_args+=("$1")
                 ;;
         esac
         shift
@@ -116,6 +120,7 @@ chr_setconfig() {
             ;;
     esac
 
+    gn_opts=()
     for arg in "${extra_gn_args}"; do
         if [[ ! "$arg" =~ --args=.+ ]]; then
             gn_opts+=("$arg")
@@ -127,6 +132,7 @@ chr_setconfig() {
 
     (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
+    (( use_glib )) && gn_args+=( 'use_glib=true' )
     (( CHR_USE_ICECC )) && gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
     if (( component )); then
         gn_args+=( 'is_component_build=true' )
@@ -334,7 +340,7 @@ ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
 ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
 
 # Default config params
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---ozone}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
