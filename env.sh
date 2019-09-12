@@ -66,10 +66,12 @@ chr_ccache_setup() {
 }
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --release
-               --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check)
+               --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check
+               --goma)
 chr_setconfig() {
     local release=1 jumbo=1 system_gbm=1 use_ccache=1
     local component=0 # experimental
+    local use_goma=0
     local use_glib=0
 
     # output
@@ -101,6 +103,13 @@ chr_setconfig() {
                 component=1
                 jumbo=0
                 ;;
+            --goma)
+                use_goma=1
+                use_ccache=0
+                jumbo=0
+                component=1
+                CHR_USE_ICECC=0
+                ;;
             --*)
                 extra_gn_args+=("$1")
                 ;;
@@ -130,14 +139,30 @@ chr_setconfig() {
         gn_args+=($args_val)
     done
 
-    (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
-    (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
-    (( use_glib )) && gn_args+=( 'use_glib=true' )
-    (( CHR_USE_ICECC )) && gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
+    # goma build
+    if (( use_goma )); then
+        gn_args+=( 'use_goma=true' )
+        variant+='-goma'
+    fi
+
+    # icecc
+    if (( CHR_USE_ICECC )); then
+        gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
+        # FIXME: Mainly when using icecc, for some reason, we get
+        # some compiling warnings, so we disable warning-as-error for now
+        gn_args+=( 'treat_warnings_as_errors=false' )
+    fi
+
+    # component build
     if (( component )); then
         gn_args+=( 'is_component_build=true' )
-        variant+='-component'
+        (( use_goma )) || variant+='-component'
     fi
+
+    (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
+    (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
+
+    (( use_glib )) && gn_args+=( 'use_glib=true' )
 
     if (( release )); then
         builddir_base='out/release'
@@ -147,10 +172,6 @@ chr_setconfig() {
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
     fi
-
-    # FIXME: Mainly when using icecc, for some reason, we get
-    # some compiling warnings, so we disable warning-as-error for now
-    gn_args+=( 'treat_warnings_as_errors=false' )
 
     builddir="${builddir_base}/${variant}"
 
@@ -244,6 +265,43 @@ chr_icecc_setup() {
     echo 'Done.'
 }
 
+_goma_setup_opts=( -u --update -l --login )
+chr_goma_setup() {
+    local update=0 login=0
+
+    # 2. Update goma client
+    test -n "$GOMA_INSTALL_DIR" || { echo "goma install dir not found"; return 1; }
+
+    # Export config vars
+    export PATH="${GOMA_INSTALL_DIR}:$PATH"
+    function goma_auth() { ${GOMA_INSTALL_DIR}/goma_auth.py $@ }
+    function goma_ctl() { ${GOMA_INSTALL_DIR}/goma_ctl.py $@ }
+
+    while (( $# )); do
+        case $1 in
+            -u | --update) Update=1;;
+            -l | --login) login=1;;
+        esac
+        shift
+    done
+
+    if (( update )); then
+        echo "Updating goma client: ${GOMA_INSTALL_DIR}"
+        cipd install infra/goma/client/linux-amd64 -root $GOMA_INSTALL_DIR
+    fi
+
+    if (( login )); then
+        # Ensure is authorized
+        goma_auth login
+    fi
+
+    # Ensure compiler_proxy daemon is started
+    echo "Starting goma client..."
+    goma_ctl ensure_start
+
+    echo 'Done.'
+}
+
 date_offset() {
     date -d "$(date +%m/%d/%Y) -$*" +%m/%d/%y
 }
@@ -300,10 +358,12 @@ if _has complete; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
     complete -W "${_list_patches_opts[*]}" chr_list_patches
+    complete -W "${_goma_setup_opts[*]}" chr_goma_setup
 elif _has compctl; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
     compctl -k "(${_list_patches_opts[*]})" chr_list_patches
+    compctl -k "(${_goma_setup_opts[*]})" chr_goma_setup
 fi
 
 # Setup depot_tools
@@ -338,6 +398,11 @@ ICECC_DATA_DIR="${chromiumdir}/icecc"
 ICECC_INSTALL_DIR=${ICECC_INSTALL_DIR:-/usr/lib/icecream}
 ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
 ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
+
+# Goma related vars
+# FIXME: Could not use ${chromiumdir}/tools/goma cause cipd does not allow
+# nested root dirs (cipd help init).
+GOMA_INSTALL_DIR="${HOME}/goma"
 
 # Default config params
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
