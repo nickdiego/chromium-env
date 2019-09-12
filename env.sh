@@ -69,7 +69,7 @@ _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --r
                --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check
                --goma)
 chr_setconfig() {
-    local release=1 jumbo=1 system_gbm=1 use_ccache=1
+    local release=1 use_jumbo=1 system_gbm=1 use_ccache=1
     local component=0 # experimental
     local use_goma=0
     local use_glib=0
@@ -88,7 +88,7 @@ chr_setconfig() {
                 release=1
                 ;;
             --no-jumbo)
-                jumbo=0
+                use_jumbo=0
                 ;;
             --no-ccache)
                 use_ccache=0
@@ -101,12 +101,12 @@ chr_setconfig() {
                 ;;
             --component)
                 component=1
-                jumbo=0
+                use_jumbo=0
                 ;;
             --goma)
                 use_goma=1
                 use_ccache=0
-                jumbo=0
+                use_jumbo=0
                 component=1
                 CHR_USE_ICECC=0
                 ;;
@@ -159,7 +159,7 @@ chr_setconfig() {
         (( use_goma )) || variant+='-component'
     fi
 
-    (( jumbo )) && gn_args+=( 'use_jumbo_build=true' )
+    (( use_jumbo )) && gn_args+=( 'use_jumbo_build=true' )
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
 
     (( use_glib )) && gn_args+=( 'use_glib=true' )
