@@ -69,15 +69,17 @@ _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --r
                --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check
                --goma)
 chr_setconfig() {
-    local release=1 use_jumbo=1 system_gbm=1 use_ccache=1
-    local component=0 # experimental
-    local use_goma=0
+    local release=1 use_jumbo=1 system_gbm=1
+    local use_component=0 # experimental
     local use_glib=0
 
     # output
     variant='ozone'
     gn_args=( 'enable_nacl=false' )
     extra_gn_args=()
+
+    use_goma=0
+    use_ccache=1
 
     while (( $# )); do
         case $1 in
@@ -100,14 +102,14 @@ chr_setconfig() {
                 use_glib=1
                 ;;
             --component)
-                component=1
+                use_component=1
                 use_jumbo=0
                 ;;
             --goma)
                 use_goma=1
                 use_ccache=0
                 use_jumbo=0
-                component=1
+                use_component=1
                 CHR_USE_ICECC=0
                 ;;
             --*)
@@ -154,7 +156,7 @@ chr_setconfig() {
     fi
 
     # component build
-    if (( component )); then
+    if (( use_component )); then
         gn_args+=( 'is_component_build=true' )
         (( use_goma )) || variant+='-component'
     fi
@@ -191,9 +193,23 @@ chr_build() {
     local artifact="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $artifact"
-    ccache --zero-stats
+
+    (( use_ccache )) && ccache --zero-stats
+
+    if (( use_goma && !GOMA_DISABLED )); then
+        # Ensure compiler_proxy daemon is started
+        echo "Starting goma client..."
+        ${GOMA_INSTALL_DIR}/goma_ctl.py ensure_start
+    fi
+
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
+
+    if (( use_goma && !GOMA_DISABLED )); then
+        # Ensure compiler_proxy daemon is started
+        echo "Stop goma client..."
+        ${GOMA_INSTALL_DIR}/goma_ctl.py ensure_stop
+    fi
 
 }
 
@@ -294,11 +310,6 @@ chr_goma_setup() {
         # Ensure is authorized
         goma_auth login
     fi
-
-    # Ensure compiler_proxy daemon is started
-    echo "Starting goma client..."
-    goma_ctl ensure_start
-
     echo 'Done.'
 }
 
@@ -399,6 +410,12 @@ ICECC_INSTALL_DIR=${ICECC_INSTALL_DIR:-/usr/lib/icecream}
 ICECC_CREATEENV=${ICECC_CREATEENV:-$ICECC_INSTALL_DIR/bin/icecc-create-env}
 ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrapper}
 
+# Chrome env vars
+# Needed for tests (browser tests?) when build dir is more than 1 level deeper
+# (e.g: out/Default). If this is not set, embedded web test server fail to
+# start cause it cannot find cert files.
+export CR_SRC_DIR=$srcdir
+
 # Goma related vars
 # FIXME: Could not use ${chromiumdir}/tools/goma cause cipd does not allow
 # nested root dirs (cipd help init).
@@ -410,3 +427,6 @@ CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
+# Set a sufficiently large limit for file descriptors (Goma builds with
+# -j2000 would complain if this is not set).
+ulimit -n 4096
