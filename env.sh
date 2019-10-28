@@ -13,7 +13,7 @@ chromiumdir="$(cd $(dirname $thisscript); pwd)"
 srcdir="${chromiumdir}/src"
 gn_args=()
 
-CHR_USE_ICECC=${CHR_USE_ICECC:-1}
+use_icecc=${CHR_USE_ICECC:-1}
 
 _has() {
     type $1 >/dev/null 2>&1
@@ -80,6 +80,7 @@ chr_setconfig() {
 
     use_goma=0
     use_ccache=1
+    use_icecc=1
 
     while (( $# )); do
         case $1 in
@@ -110,7 +111,7 @@ chr_setconfig() {
                 use_ccache=0
                 use_jumbo=0
                 use_component=1
-                CHR_USE_ICECC=0
+                use_icecc=0
                 ;;
             --*)
                 extra_gn_args+=("$1")
@@ -148,7 +149,7 @@ chr_setconfig() {
     fi
 
     # icecc
-    if (( CHR_USE_ICECC )); then
+    if (( use_icecc )); then
         gn_args+=( 'linux_use_bundled_binutils=false' 'use_debug_fission=false' )
         # FIXME: Mainly when using icecc, for some reason, we get
         # some compiling warnings, so we disable warning-as-error for now
@@ -193,6 +194,7 @@ chr_build() {
     local artifact="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $artifact"
+    local result=0
 
     (( use_ccache )) && ccache --zero-stats
 
@@ -204,6 +206,7 @@ chr_build() {
 
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
+    result=$?
 
     if (( use_goma && !GOMA_DISABLED )); then
         # Ensure compiler_proxy daemon is started
@@ -211,6 +214,7 @@ chr_build() {
         ${GOMA_INSTALL_DIR}/goma_ctl.py ensure_stop
     fi
 
+    return $result
 }
 
 chr_run() {
@@ -253,7 +257,7 @@ chr_run() {
 
 chr_icecc_setup() {
     # 2. Update icecc bundle
-    (( CHR_USE_ICECC )) || return 0
+    (( use_icecc )) || return 0
     test -d $ICECC_INSTALL_DIR || { echo "icecc install dir not found"; return 1; }
     test -x $ICECC_CREATEENV || { echo "icecc-create-env not found"; return 1; }
     test -x $ICECC_CCWRAPPER || { echo "icecc compilerwrapper not found"; return 1; }
