@@ -66,12 +66,12 @@ chr_ccache_setup() {
 }
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --release
-               --use-glib --no-jumbo --no-ccache --no-system-gbm --component --check
+               --no-glib --no-jumbo --no-ccache --no-system-gbm --component --check
                --goma)
 chr_setconfig() {
     local release=1 use_jumbo=1 system_gbm=1
     local use_component=0 # experimental
-    local use_glib=0
+    local use_glib=1
 
     # output
     variant='ozone'
@@ -99,8 +99,8 @@ chr_setconfig() {
             --no-system-gbm)
                 system_gbm=0
                 ;;
-            --use-glib)
-                use_glib=1
+            --no-glib)
+                use_glib=0
                 ;;
             --component)
                 use_component=1
@@ -128,6 +128,7 @@ chr_setconfig() {
                 gn_args+=( 'use_system_minigbm=true' 'use_system_libdrm=true')
             ;;
         cros)
+            use_glib=0
             gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
             ;;
     esac
