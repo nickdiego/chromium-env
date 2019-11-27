@@ -124,7 +124,7 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true' 'use_xkbcommon=true'
                       'ozone_platform_wayland=true' 'ozone_platform_x11=true')
-            (( system_gbm )) &&
+            (( system_gbm )) && \
                 gn_args+=( 'use_system_minigbm=true' 'use_system_libdrm=true')
             ;;
         cros)
@@ -298,8 +298,8 @@ chr_goma_setup() {
 
     # Export config vars
     export PATH="${GOMA_INSTALL_DIR}:$PATH"
-    function goma_auth() { ${GOMA_INSTALL_DIR}/goma_auth.py $@ }
-    function goma_ctl() { ${GOMA_INSTALL_DIR}/goma_ctl.py $@ }
+    alias goma_auth="${GOMA_INSTALL_DIR}/goma_auth.py"
+    alias goma_ctl="${GOMA_INSTALL_DIR}/goma_ctl.py"
 
     while (( $# )); do
         case $1 in
@@ -391,7 +391,6 @@ if [ -r "$depot" ]; then
     export PATH="${depot}:$PATH"
 
     if [ -n "$BASH_VERSION" ]; then
-        echo "Laoading bash completion to 'gclient' command"
         source "${depot}/gclient_completion.sh"
     fi
 
@@ -438,3 +437,4 @@ chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 # Set a sufficiently large limit for file descriptors (Goma builds with
 # -j2000 would complain if this is not set).
 ulimit -n 4096
+
