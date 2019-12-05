@@ -421,7 +421,7 @@ ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrap
 # Needed for tests (browser tests?) when build dir is more than 1 level deeper
 # (e.g: out/Default). If this is not set, embedded web test server fail to
 # start cause it cannot find cert files.
-export CR_SRC_DIR=$srcdir
+export CR_SOURCE_ROOT=$srcdir
 
 # Goma related vars
 # FIXME: Could not use ${chromiumdir}/tools/goma cause cipd does not allow
