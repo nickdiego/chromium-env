@@ -1,11 +1,12 @@
 #!/bin/env bash
 
-# Script useful for scheduling local chromium builds using cronjobs, for
-# example. It assumes there is a chromium checkout at $CHROMIUM_SRC and it is
-# capable to save/restore current branch changes using `git stash`. Sources are
-# fetched from $REMOTE git remote and and build occur in $BUILD_BRANCH branch.
+# Script useful for fetching and scheduling local chromium builds using
+# cronjobs, for example. It assumes there is a chromium checkout at
+# $CHROMIUM_SRC and it is capable to save/restore current branch changes using
+# `git stash`. Sources are fetched from $REMOTE git remote and and build occur
+# in $BUILD_BRANCH branch.
 #
-## Author: Nick Diego Yamane <nick@igalia.com>
+## Author: Nick Diego Yamane <nickdiego@igalia.com>
 
 CHROMIUM_DIR="$HOME/projects/chromium"
 CHROMIUM_ENV="${CHROMIUM_DIR}/env.sh"
