@@ -66,10 +66,9 @@ chr_ccache_setup() {
 }
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --release
-               --no-glib --no-jumbo --no-ccache --no-system-gbm --component --check
-               --goma)
+               --no-glib --jumbo --ccache --no-system-gbm --component --check --goma)
 chr_setconfig() {
-    local release=1 use_jumbo=1 system_gbm=1
+    local release=1 use_jumbo=0 system_gbm=1
     local use_component=0 # experimental
     local use_glib=1
 
@@ -78,9 +77,9 @@ chr_setconfig() {
     gn_args=( 'enable_nacl=false' )
     extra_gn_args=()
 
-    use_goma=0
-    use_ccache=1
-    use_icecc=1
+    use_goma=1
+    use_ccache=0
+    use_icecc=0
 
     while (( $# )); do
         case $1 in
@@ -90,11 +89,11 @@ chr_setconfig() {
             --release)
                 release=1
                 ;;
-            --no-jumbo)
-                use_jumbo=0
+            --jumbo)
+                use_jumbo=1
                 ;;
-            --no-ccache)
-                use_ccache=0
+            --ccache)
+                use_ccache=1
                 ;;
             --no-system-gbm)
                 system_gbm=0
@@ -429,7 +428,7 @@ export CR_SOURCE_ROOT=$srcdir
 GOMA_INSTALL_DIR="${HOME}/goma"
 
 # Default config params
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=x11}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
