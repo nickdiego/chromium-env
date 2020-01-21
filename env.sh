@@ -204,7 +204,8 @@ chr_build() {
     if (( use_goma && !GOMA_DISABLED )); then
         # Ensure compiler_proxy daemon is started
         echo "Starting goma client..."
-        ${GOMA_INSTALL_DIR}/goma_ctl.py ensure_start
+        goma_ctl ensure_start
+
     fi
 
     echo "Running cmd: $cmd"
@@ -213,8 +214,11 @@ chr_build() {
 
     if (( use_goma && !GOMA_DISABLED )); then
         # Ensure compiler_proxy daemon is started
-        echo "Stop goma client..."
-        ${GOMA_INSTALL_DIR}/goma_ctl.py ensure_stop
+        echo "Stop goma client...but before, some stats:"
+        echo "========================= GOMA STATS BEGIN"
+        goma_ctl stat
+        echo "=========================== GOMA STAT SEND"
+        goma_ctl ensure_stop
     fi
 
     return $result
@@ -294,11 +298,6 @@ chr_goma_setup() {
 
     # 2. Update goma client
     test -n "$GOMA_INSTALL_DIR" || { echo "goma install dir not found"; return 1; }
-
-    # Export config vars
-    export PATH="${GOMA_INSTALL_DIR}:$PATH"
-    alias goma_auth="${GOMA_INSTALL_DIR}/goma_auth.py"
-    alias goma_ctl="${GOMA_INSTALL_DIR}/goma_ctl.py"
 
     while (( $# )); do
         case $1 in
@@ -425,7 +424,9 @@ export CR_SOURCE_ROOT=$srcdir
 # Goma related vars
 # FIXME: Could not use ${chromiumdir}/tools/goma cause cipd does not allow
 # nested root dirs (cipd help init).
-GOMA_INSTALL_DIR="${HOME}/goma"
+export GOMA_LOCAL_OUTPUT_CACHE_DIR="${chromiumdir}/cache/goma"
+export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
+
 
 # Default config params
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=x11}"
