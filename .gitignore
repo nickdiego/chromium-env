@@ -3,7 +3,7 @@
 /tools/*
 !tools/depot_tools
 /venv/
-/ccache/
+/cache/
 /icecc/
 .gclient_entries
 /.cipd/

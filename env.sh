@@ -57,7 +57,7 @@ chr_ccache_setup() {
     fi
 
     export CCACHE_BASEDIR=$chromiumdir
-    export CCACHE_DIR="${chromiumdir}/ccache/${variant}"
+    export CCACHE_DIR="${chromiumdir}/cache/ccache/${variant}"
     export CCACHE_CPP2=yes
     export CCACHE_SLOPPINESS='include_file_mtime,time_macros'
     export CCACHE_DEPEND=true
