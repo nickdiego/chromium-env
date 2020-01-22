@@ -103,7 +103,9 @@ chr_setconfig() {
                 ;;
             --component)
                 use_component=1
-                use_jumbo=0
+                use_icecc=1
+                use_ccache=1
+                use_goma=0
                 ;;
             --goma)
                 use_goma=1
