@@ -219,7 +219,7 @@ chr_build() {
         echo "Stop goma client...but before, some stats:"
         echo "========================= GOMA STATS BEGIN"
         goma_ctl stat
-        echo "=========================== GOMA STAT SEND"
+        echo "=========================== GOMA STATS END"
         goma_ctl ensure_stop
     fi
 
