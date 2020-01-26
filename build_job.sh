@@ -23,7 +23,7 @@ LOG="${LOGS_DIR}/${BUILD_ID}.log"
 
 # Config/build vars
 VARIANTS=(x11 ozone cros)
-CONFIGS=('--component' '--release')
+CONFIGS=('--goma' '--release')
 TARGETS=(chrome interactive_ui_tests)
 NUM_JOBS=100
 
