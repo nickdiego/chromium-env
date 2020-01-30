@@ -147,7 +147,6 @@ chr_setconfig() {
     # goma build
     if (( use_goma )); then
         gn_args+=( 'use_goma=true' )
-        variant+='-goma'
     else
         # FIXME: Work around ENOENT errors for polymer.m.js
         gn_args+=( 'optimize_webui=false' )
