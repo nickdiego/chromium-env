@@ -1,8 +1,11 @@
 # ex: ts=2 sw=4 et filetype=sh
 
-if [ -n "$BASH_VERSION" ]; then
+is_bash() { test -n "$BASH_VERSION" }
+is_zsh() { test -n "$ZSH_VERSION" }
+
+if is_bash; then
     thisscript="${BASH_SOURCE[0]}"
-elif [ -n "$ZSH_VERSION" ]; then
+elif is_zsh; then
     thisscript="${(%):-%N}"
 else
     echo "Unsupported shell!"
@@ -372,12 +375,12 @@ chr_list_patches() {
 }
 
 # bash/zsh completion
-if _has complete; then
+if is_bash; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
     complete -W "${_list_patches_opts[*]}" chr_list_patches
     complete -W "${_goma_setup_opts[*]}" chr_goma_setup
-elif _has compctl; then
+elif is_zsh; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
     compctl -k "(${_list_patches_opts[*]})" chr_list_patches
