@@ -70,7 +70,7 @@ chr_ccache_setup() {
 
 _config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
                 --release --no-glib --jumbo --ccache --no-system-gbm --component
-                --check --no-goma)
+                --check --no-goma --update-compdb)
 chr_setconfig() {
     local release=1 use_jumbo=0 system_gbm=1
     local use_component=0
@@ -84,6 +84,7 @@ chr_setconfig() {
     use_goma=1
     use_ccache=0
     use_icecc=0
+    update_compdb=0
 
     while (( $# )); do
         case $1 in
@@ -110,6 +111,9 @@ chr_setconfig() {
                 ;;
             --no-goma)
                 use_goma=0
+                ;;
+            --update-compdb)
+                update_compdb=1
                 ;;
             --*)
                 extra_gn_args+=("$1")
@@ -187,6 +191,11 @@ chr_setconfig() {
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
     fi
 
+    if (( update_compdb )); then
+        local compdb_targets=${CHR_COMPDB_TARGETS:-chrome}
+        gn_opts+=(--export-compile-commands="$compdb_targets")
+    fi
+
     builddir="${builddir_base}/${variant}"
 
     # Keep this at the end of this function
@@ -197,8 +206,13 @@ chr_setconfig() {
 chr_config() {
     chr_setconfig $@
     local cmd="gn gen \"$builddir\" ${gn_opts[@]} --args='${gn_args[*]}'"
+    local compdb="${srcdir}/compile_commands.json"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
+    if (( update_compdb )) && [ ! -e $compdb ]; then
+        ln -sf "${builddir}/compile_commands.json" "$compdb" && \
+            echo "Updated $compdb" >&2
+    fi
 }
 
 chr_build() {
@@ -439,6 +453,7 @@ export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
 # Default config params
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=x11}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
+CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 

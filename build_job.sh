@@ -23,7 +23,7 @@ LOG="${LOGS_DIR}/${BUILD_ID}.log"
 
 # Config/build vars
 VARIANTS=(x11 ozone cros)
-CONFIGS=('--goma' '--release')
+CONFIGS=('--goma' '--release' '--update-compdb')
 TARGETS=(chrome interactive_ui_tests)
 NUM_JOBS=100
 
@@ -101,6 +101,8 @@ IS_DIRTY=$(has_pending_changes)
 
   cd ${CHROMIUM_SRC}
   save_and_fetch_build_branch
+
+  CHR_COMPDB_TARGETS=$TARGETS
 
   for variant in "${VARIANTS[@]}"; do
     echo "### Building '$variant' [BEGIN]"
