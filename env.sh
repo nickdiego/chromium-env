@@ -68,11 +68,12 @@ chr_ccache_setup() {
         max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
-_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom --release
-               --no-glib --jumbo --ccache --no-system-gbm --component --check --goma)
+_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
+                --release --no-glib --jumbo --ccache --no-system-gbm --component
+                --check --no-goma)
 chr_setconfig() {
     local release=1 use_jumbo=0 system_gbm=1
-    local use_component=0 # experimental
+    local use_component=0
     local use_glib=1
 
     # output
@@ -106,16 +107,9 @@ chr_setconfig() {
                 ;;
             --component)
                 use_component=1
-                use_icecc=1
-                use_ccache=1
-                use_goma=0
                 ;;
-            --goma)
-                use_goma=1
-                use_ccache=0
-                use_jumbo=0
-                use_component=1
-                use_icecc=0
+            --no-goma)
+                use_goma=0
                 ;;
             --*)
                 extra_gn_args+=("$1")
@@ -136,6 +130,16 @@ chr_setconfig() {
             gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
             ;;
     esac
+
+    if (( use_goma )); then
+        use_component=1
+        use_ccache=0
+        use_jumbo=0
+        use_icecc=0
+    elif (( use_component )); then
+        use_icecc=1
+        use_ccache=1
+    fi
 
     gn_opts=()
     for arg in "${extra_gn_args}"; do
