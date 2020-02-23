@@ -1,7 +1,7 @@
 # ex: ts=2 sw=4 et filetype=sh
 
-is_bash() { test -n "$BASH_VERSION" }
-is_zsh() { test -n "$ZSH_VERSION" }
+is_bash() { test -n "$BASH_VERSION"; }
+is_zsh() { test -n "$ZSH_VERSION"; }
 
 if is_bash; then
     thisscript="${BASH_SOURCE[0]}"
