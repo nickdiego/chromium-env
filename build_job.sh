@@ -22,7 +22,7 @@ BUILD_ID="build_$(date "+%m-%d-%Y_%H:%M:%S%Z")"
 LOG="${LOGS_DIR}/${BUILD_ID}.log"
 
 # Config/build vars
-VARIANTS=(x11 ozone cros)
+VARIANTS=(x11 ozone)
 CONFIGS=('--goma' '--release' '--update-compdb')
 TARGETS=(chrome interactive_ui_tests)
 NUM_JOBS=100
