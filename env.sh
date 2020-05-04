@@ -255,23 +255,21 @@ chr_get_user_data_dir() {
 chr_run() {
     local user_dir
     local wayland_ws=wayland
-    local clear=${clear:-1}
-    local ozone_plat_default=wayland
+    local clear=${clear:-0}
+    local ozone_plat_default=x11
     local extra_args=$*
     local opts=( --enable-logging=stderr )
+    local is_wayland=0
 
     case "$variant" in
         ozone)
             opts+=('--no-sandbox')
-            if [[ ! "$extra_args" =~ --ozone-platform=.+ ]]; then
+            if [[ "$extra_args" =~ --ozone-platform=wayland ]]; then
+                is_wayland=1
+            elif [[ ! "$extra_args" =~ --ozone-platform=.+ ]]; then
                 echo "Using default ozone platform '$ozone_plat_default'"
                 extra_args+="--ozone-platform=${ozone_plat_default}"
             fi
-            # If running wayland compositor in an i3 session, move to the
-            # $wayland_ws workspace
-            [[ "$extra_args" =~ --ozone-platform=wayland ]] && \
-                _has 'i3-msg' && i3-msg workspace $wayland_ws
-
             ;;
         cros)
             user_dir='/tmp/chr_cros'
@@ -286,6 +284,14 @@ chr_run() {
     fi
 
     local cmd="${builddir}/chrome ${opts[*]} $extra_args"
+
+    if (( is_wayland )); then
+        cmd="env GDK_BACKEND=wayland $cmd"
+        # If running wayland compositor in an i3 session, move to the
+        # $wayland_ws workspace
+        _has 'i3-msg' && i3-msg workspace $wayland_ws
+    fi
+
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
 }
