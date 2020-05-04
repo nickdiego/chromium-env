@@ -105,10 +105,10 @@ IS_DIRTY=$(has_pending_changes)
   CHR_COMPDB_TARGETS=$TARGETS
 
   for variant in "${VARIANTS[@]}"; do
-    echo "### Building '$variant' [BEGIN]"
+    echo "### Build for variant '$variant' [BEGIN]"
     chr_config "${CONFIGS[@]}" --variant=$variant
     chr_build -j${NUM_JOBS} "${TARGETS[@]}"
-    echo "### Build for variant '$variant' done."
+    echo "### Build for variant '$variant' [END]"
   done
 
   restore_original_branch_state
