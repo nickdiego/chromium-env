@@ -246,6 +246,12 @@ chr_build() {
     return $result
 }
 
+chr_get_user_data_dir() {
+  local dir=${user_dir:-${chromiumdir}/tmp/chr_tmp}
+  echo "---> datadir: $dir" >&2
+  echo $dir
+}
+
 chr_run() {
     local user_dir
     local wayland_ws=wayland
@@ -271,7 +277,7 @@ chr_run() {
             user_dir='/tmp/chr_cros'
             ;;
     esac
-    user_dir=${user_dir:-/tmp/chr_tmp}
+    user_dir=$(chr_get_user_data_dir)
     opts+=("--user-data-dir=${user_dir}")
 
     if (( clear )) && [ -n "$user_dir" ]; then
