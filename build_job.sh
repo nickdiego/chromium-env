@@ -22,10 +22,10 @@ BUILD_ID="build_$(date "+%m-%d-%Y_%H:%M:%S%Z")"
 LOG="${LOGS_DIR}/${BUILD_ID}.log"
 
 # Config/build vars
-VARIANTS=(x11 ozone)
+VARIANTS=(ozone cros x11)
 CONFIGS=('--goma' '--release' '--update-compdb')
-TARGETS=(chrome interactive_ui_tests)
-NUM_JOBS=100
+TARGETS=(chrome)
+NUM_JOBS=500
 
 # Git-related vars / functions
 get_branch_name() {
