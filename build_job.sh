@@ -27,6 +27,8 @@ CONFIGS=('--goma' '--release' '--update-compdb')
 TARGETS=(chrome)
 NUM_JOBS=500
 
+FETCH=${FETCH:-1}
+
 # Git-related vars / functions
 get_branch_name() {
   local branch_name=$(git symbolic-ref -q HEAD)
@@ -40,6 +42,8 @@ has_pending_changes() {
 }
 
 save_and_fetch_build_branch() {
+  (( FETCH )) || return
+
   if [ -z "$ORIGINAL_BRANCH" ]; then
     echo "Error: No idea on how to save/restore dettached branch." >&2
     return 1
@@ -60,6 +64,8 @@ save_and_fetch_build_branch() {
 }
 
 restore_original_branch_state() {
+  (( FETCH )) || return
+
   echo "### Switching back to branch '$ORIGINAL_BRANCH'"
   git checkout -q $ORIGINAL_BRANCH
   if (( IS_DIRTY )); then
