@@ -68,9 +68,9 @@ chr_ccache_setup() {
         max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
-_config_opts=( --variant=ozone --variant=cros --variant=custom --release
-                --no-glib --jumbo --ccache --no-system-gbm --component
-                --check --no-goma --update-compdb)
+_config_opts=( --variant=ozone --variant=cros --variant=lacros --variant=custom
+                --release --no-glib --jumbo --ccache --no-system-gbm --component
+                --check --no-goma --update-compdb --enable-lacros-support)
 chr_setconfig() {
     local release=1 use_jumbo=0 system_gbm=1
     local use_component=0
@@ -85,6 +85,7 @@ chr_setconfig() {
     use_ccache=0
     use_icecc=0
     update_compdb=0
+    cros_with_lacros_support=0
 
     while (( $# )); do
         case $1 in
@@ -115,6 +116,9 @@ chr_setconfig() {
             --update-compdb)
                 update_compdb=1
                 ;;
+            --enable-lacros-support)
+                cros_with_lacros_support=1
+                ;;
             --*)
                 extra_gn_args+=("$1")
                 ;;
@@ -133,6 +137,16 @@ chr_setconfig() {
         cros)
             use_glib=0
             gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
+            ;;
+        lacros)
+            gn_args+=('target_os="chromeos"' 'use_ozone=true'
+                      'use_xkbcommon=true' 'ozone_auto_platforms=false'
+                      'ozone_platform_wayland=true' 'ozone_platform="wayland"'
+                      'ozone_platform_x11=false' 'use_system_minigbm=true'
+                      'use_system_libdrm=true' 'use_wayland_gbm=false'
+                      'use_system_libwayland=false' 'use_glib=false'
+                      'use_gtk=false' 'chromeos_is_browser_only=true'
+                      'also_build_ash_chrome=false')
             ;;
     esac
 
@@ -198,6 +212,7 @@ chr_setconfig() {
     fi
 
     builddir="${builddir_base}/${variant}"
+    lacros_sock='/tmp/lacros.sock'
 
     # Keep this at the end of this function
     chr_icecc_setup >/dev/null
@@ -248,7 +263,7 @@ chr_build() {
 }
 
 chr_get_user_data_dir() {
-  local dir=${user_dir:-${chromiumdir}/tmp/chr_tmp}
+  local dir="${user_dir:-${chromiumdir}/tmp/chr_tmp}_${variant}"
   echo "---> datadir: $dir" >&2
   echo $dir
 }
@@ -258,25 +273,35 @@ chr_run() {
     local wayland_ws=wayland
     local clear=${clear:-0}
     local ozone_plat_default=wayland
-    local extra_args=$*
+    local extra_args=("$@")
     local opts=( --enable-logging=stderr )
     local is_wayland=0
+    local is_lacros=0
 
     case "$variant" in
         ozone)
             opts+=('--no-sandbox')
-            if [[ "$extra_args" =~ --ozone-platform=wayland ]]; then
+            if [[ "${extra_args[*]}" =~ --ozone-platform=wayland ]]; then
                 is_wayland=1
-            elif [[ ! "$extra_args" =~ --ozone-platform=.+ ]]; then
+            elif [[ ! "${extra_args[*]}" =~ --ozone-platform=.+ ]]; then
                 echo "Using default ozone platform '$ozone_plat_default'"
-                extra_args+="--ozone-platform=${ozone_plat_default}"
+                extra_args+=( "--ozone-platform=${ozone_plat_default}" )
             fi
             ;;
         cros)
-            user_dir='/tmp/chr_cros'
+            extra_args+=('--enable-wayland-server'
+                         '--wayland-server-socket=wayland-exo'
+                         '--no-startup-window --ash-dev-shortcuts')
+            if (( cros_with_lacros_support )); then
+                extra_args+=('--enable-features=LacrosSupport'
+                             "--lacros-mojo-socket-for-testing=${lacros_sock}")
+            fi
+            ;;
+        lacros)
+            is_lacros=1
             ;;
     esac
-    user_dir=$(chr_get_user_data_dir)
+    user_dir="$(chr_get_user_data_dir)"
     opts+=("--user-data-dir=${user_dir}")
 
     if (( clear )) && [ -n "$user_dir" ]; then
@@ -284,13 +309,19 @@ chr_run() {
         test -d "$user_dir" && rm -rf "$user_dir"
     fi
 
-    local cmd="${builddir}/chrome ${opts[*]} $extra_args"
+    local cmd="${builddir}/chrome ${opts[*]} ${extra_args[*]}"
+    local -a env prefix_cmd
 
     if (( is_wayland )); then
         cmd="env GDK_BACKEND=wayland $cmd"
         # If running wayland compositor in an i3 session, move to the
         # $wayland_ws workspace
         _has 'i3-msg' && i3-msg workspace $wayland_ws
+    elif (( is_lacros )); then
+        env=('EGL_PLATFORM=surfaceless' 'WAYLAND_DISPLAY=wayland-exo')
+        prefix_cmd=('build/lacros/mojo_connection_lacros_launcher.py'
+                    '-s' "$lacros_sock")
+        cmd="env ${env[*]} ${prefix_cmd[*]} $cmd"
     fi
 
     echo "Running cmd: $cmd"
