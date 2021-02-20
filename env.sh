@@ -68,8 +68,8 @@ chr_ccache_setup() {
         max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
-_config_opts=( --variant=ozone --variant=x11 --variant=cros --variant=custom
-                --release --no-glib --jumbo --ccache --no-system-gbm --component
+_config_opts=( --variant=ozone --variant=cros --variant=custom --release
+                --no-glib --jumbo --ccache --no-system-gbm --component
                 --check --no-goma --update-compdb)
 chr_setconfig() {
     local release=1 use_jumbo=0 system_gbm=1
@@ -126,7 +126,7 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'ozone_platform_x11=true' 'use_x11=false')
+                      'ozone_platform_x11=true' 'use_x11=true')
             (( system_gbm )) && \
                 gn_args+=( 'use_system_minigbm=true' 'use_system_libdrm=true')
             ;;
@@ -257,7 +257,7 @@ chr_run() {
     local user_dir
     local wayland_ws=wayland
     local clear=${clear:-0}
-    local ozone_plat_default=x11
+    local ozone_plat_default=wayland
     local extra_args=$*
     local opts=( --enable-logging=stderr )
     local is_wayland=0
@@ -464,9 +464,9 @@ export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
 
 
 # Default config params
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=x11}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
-CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests}"
+CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests,ozone_unittests}"
 
 chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 

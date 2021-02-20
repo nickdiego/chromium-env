@@ -22,10 +22,10 @@ BUILD_ID="build_$(date "+%m-%d-%Y_%H:%M:%S%Z")"
 LOG="${LOGS_DIR}/${BUILD_ID}.log"
 
 # Config/build vars
-VARIANTS=(ozone cros x11)
+VARIANTS=(ozone cros)
 CONFIGS=('--goma' '--release' '--update-compdb')
 TARGETS=(chrome)
-NUM_JOBS=500
+NUM_JOBS=400
 
 FETCH=${FETCH:-1}
 
