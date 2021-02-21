@@ -68,16 +68,39 @@ chr_ccache_setup() {
         max_size ${CHR_CCACHE_SIZE:-50G}
 }
 
+chr_dump_config() {
+    echo "### srcdir: $srcdir"
+    echo "### outdir: $srcdir/$builddir"
+    echo "### variant: $variant"
+    echo "### type: $build_type"
+    echo "### python: $(which python)"
+    # Verbose?
+    [ "$1" != '-v' ] && return
+    echo "### python ver: $(python --version 2>&1)"
+    echo "### gn args:"
+    for arg in "${gn_args[@]}"; do
+        echo "    $arg"
+    done
+    if [ "${#extra_gn_args[@]}" -gt 0 ]; then
+        echo "### extra gn args:"
+        for arg in "${extra_gn_args[@]}"; do
+            echo "    $arg"
+        done
+    fi
+}
+
 _config_opts=( --variant=ozone --variant=cros --variant=lacros --variant=custom
-                --release --no-glib --ccache --no-system-gbm --component --check
-                --no-goma --update-compdb --enable-lacros-support)
+                --type=release --type=debug --no-glib --ccache --component
+                --check --no-goma --update-compdb --enable-lacros-support
+                --quiet)
 chr_setconfig() {
-    local release=1 system_gbm=1
+    local quiet=0
     local use_component=0
     local use_glib=1
 
     # output
     variant='ozone'
+    build_type='release'
     gn_args=( 'enable_nacl=false' )
     extra_gn_args=()
 
@@ -92,14 +115,11 @@ chr_setconfig() {
             --variant=*)
                 variant=${1##--variant=}
                 ;;
-            --release)
-                release=1
+            --type=*)
+                build_type=${1##--type=}
                 ;;
             --ccache)
                 use_ccache=1
-                ;;
-            --no-system-gbm)
-                system_gbm=0
                 ;;
             --no-glib)
                 use_glib=0
@@ -116,6 +136,9 @@ chr_setconfig() {
             --enable-lacros-support)
                 cros_with_lacros_support=1
                 ;;
+            --quiet|-q)
+                quiet=1
+                ;;
             --*)
                 extra_gn_args+=("$1")
                 ;;
@@ -127,9 +150,8 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
+                      'use_system_minigbm=true' 'use_system_libdrm=true'
                       'ozone_platform_x11=true' 'use_x11=true')
-            (( system_gbm )) && \
-                gn_args+=( 'use_system_minigbm=true' 'use_system_libdrm=true')
             ;;
         cros)
             use_glib=0
@@ -192,10 +214,11 @@ chr_setconfig() {
 
     (( use_glib )) && gn_args+=( 'use_glib=true' )
 
-    if (( release )); then
+    if [ "$build_type" = 'release' ]; then
         builddir_base='out/release'
         gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
-        gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' ) # make it more debuggable even for release builds
+        # Make it more debuggable even for release builds
+        gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' )
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
@@ -212,6 +235,8 @@ chr_setconfig() {
     # Keep this at the end of this function
     chr_icecc_setup >/dev/null
     chr_ccache_setup >/dev/null
+
+    (( quiet )) || chr_dump_config
 }
 
 chr_config() {
@@ -259,7 +284,6 @@ chr_build() {
 
 chr_get_user_data_dir() {
   local dir="${user_dir:-${chromiumdir}/tmp/chr_tmp}_${variant}"
-  echo "---> datadir: $dir" >&2
   echo $dir
 }
 
@@ -362,7 +386,7 @@ chr_goma_setup() {
 
     while (( $# )); do
         case $1 in
-            -u | --update) Update=1;;
+            -u | --update) update=1;;
             -l | --login) login=1;;
         esac
         shift
@@ -491,10 +515,10 @@ export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
 
 # Default config params
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
-CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---release}"
+CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---type=release}"
 CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests,ozone_unittests}"
 
-chr_setconfig $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
+chr_setconfig -q $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
 # Set a sufficiently large limit for file descriptors (Goma builds with
 # -j2000 would complain if this is not set).
