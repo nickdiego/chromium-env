@@ -69,10 +69,10 @@ chr_ccache_setup() {
 }
 
 _config_opts=( --variant=ozone --variant=cros --variant=lacros --variant=custom
-                --release --no-glib --jumbo --ccache --no-system-gbm --component
-                --check --no-goma --update-compdb --enable-lacros-support)
+                --release --no-glib --ccache --no-system-gbm --component --check
+                --no-goma --update-compdb --enable-lacros-support)
 chr_setconfig() {
-    local release=1 use_jumbo=0 system_gbm=1
+    local release=1 system_gbm=1
     local use_component=0
     local use_glib=1
 
@@ -94,9 +94,6 @@ chr_setconfig() {
                 ;;
             --release)
                 release=1
-                ;;
-            --jumbo)
-                use_jumbo=1
                 ;;
             --ccache)
                 use_ccache=1
@@ -153,7 +150,6 @@ chr_setconfig() {
     if (( use_goma )); then
         use_component=1
         use_ccache=0
-        use_jumbo=0
         use_icecc=0
     elif (( use_component )); then
         use_icecc=1
@@ -192,7 +188,6 @@ chr_setconfig() {
         (( use_goma )) || variant+='-component'
     fi
 
-    (( use_jumbo )) && gn_args+=( 'use_jumbo_build=true' )
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
 
     (( use_glib )) && gn_args+=( 'use_glib=true' )
