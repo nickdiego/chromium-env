@@ -261,33 +261,55 @@ chr_config() {
     fi
 }
 
+on_build_starting() {
+    build_log_file=$(mktemp chr_build_XXXXXX.log)
+    echo "Logging build details to ${build_log_file}." >&2
+
+    (( use_ccache )) && ccache --zero-stats
+
+    (( use_goma && !GOMA_DISABLED )) || return
+    echo "Ensuring Goma client is running.." >&2
+    {
+        # Ensure compiler_proxy daemon is started
+        echo "Starting goma client..."
+        goma_ctl ensure_start
+    } &> $build_log_file
+}
+
+on_build_finished() {
+    (( chr_build_running )) || return
+
+    local stop_goma=${stop_goma:-1}
+    (( use_goma && !GOMA_DISABLED && stop_goma )) || return
+    echo "Stopping Goma..." >&2
+    trap "" SIGINT
+    {
+        # Ensure compiler_proxy daemon is started
+        echo "Stop goma client...but before, some stats:"
+        echo "========================= GOMA STATS BEGIN"
+        goma_ctl stat
+        echo "=========================== GOMA STATS END"
+        goma_ctl ensure_s
+    } &> $build_log_file
+
+    chr_build_running=0
+}
+
 chr_build() {
     local artifact="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $artifact"
     local result=0
 
-    (( use_ccache )) && ccache --zero-stats
-
-    if (( use_goma && !GOMA_DISABLED )); then
-        # Ensure compiler_proxy daemon is started
-        echo "Starting goma client..."
-        goma_ctl ensure_start
-
-    fi
+    on_build_starting
+    trap on_build_finished SIGINT
+    chr_build_running=1
 
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
     result=$?
 
-    if (( use_goma && !GOMA_DISABLED )); then
-        # Ensure compiler_proxy daemon is started
-        echo "Stop goma client...but before, some stats:"
-        echo "========================= GOMA STATS BEGIN"
-        goma_ctl stat
-        echo "=========================== GOMA STATS END"
-        goma_ctl ensure_stop
-    fi
+    on_build_finished
 
     return $result
 }
