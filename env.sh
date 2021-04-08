@@ -111,6 +111,10 @@ chr_setconfig() {
     update_compdb=0
     cros_with_lacros_support=0
 
+    # Tmp for debugging. TODO: Add cmd line option?
+    cros_camera=${cros_camera:-0}
+    enable_vaapi=${enable_vaapi:-0}
+
     while (( $# )); do
         case $1 in
             --variant=*)
@@ -154,6 +158,9 @@ chr_setconfig() {
                       'use_system_minigbm=false' 'use_system_libdrm=true'
                       'use_intel_minigbm=true' 'ozone_platform_x11=true'
                       'use_x11=true')
+
+            (( enable_vaapi )) && gn_args+=('use_vaapi=true')
+            (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
             ;;
         cros)
             use_glib=0
