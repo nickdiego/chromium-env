@@ -101,7 +101,8 @@ chr_setconfig() {
     # output
     variant='ozone'
     build_type='release'
-    gn_args=( 'enable_nacl=false' )
+    gn_args=( 'enable_nacl=false' 'proprietary_codecs=true'
+              'ffmpeg_branding="Chrome"')
     extra_gn_args=()
 
     use_goma=1
@@ -150,12 +151,14 @@ chr_setconfig() {
         ozone)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'use_system_minigbm=true' 'use_system_libdrm=true'
-                      'ozone_platform_x11=true' 'use_x11=true')
+                      'use_system_minigbm=false' 'use_system_libdrm=true'
+                      'use_intel_minigbm=true' 'ozone_platform_x11=true'
+                      'use_x11=true')
             ;;
         cros)
             use_glib=0
-            gn_args+=('target_os="chromeos"' 'use_xkbcommon=true')
+            gn_args+=('target_os="chromeos"' 'use_xkbcommon=true'
+                      'use_system_minigbm=false' 'use_intel_minigbm=true')
             ;;
         lacros)
             gn_args+=('target_os="chromeos"' 'use_ozone=true'
