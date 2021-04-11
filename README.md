@@ -7,9 +7,9 @@ building and running chrome and other chromium artifacts/tools.
 
 *Tested only on Arch Linux with recent versions of bash and zsh*
 
-A common setup would be cloning it in `$HOME`, for example. After
-[having installed the system dependencies]( https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/linux/build_instructions.md#Install-additional-build-dependencies),
-run the following to bootstrap the env:
+A common setup would be cloning it in `$HOME`, for example. After installing the
+[system dependencies]( https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/linux/build_instructions.md#Install-additional-build-dependencies)
+required, run the following to bootstrap the env:
 
 ```sh
 source env.sh && chr_bootstrap
