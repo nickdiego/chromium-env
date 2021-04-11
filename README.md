@@ -25,8 +25,20 @@ Fetching chromium sources at `<path/to/this/repo>/src`.
 ```sh
 gclient sync
 ```
+#### Ditributed builds with Goma
 
-#### Setting up ICECC
+Nowadays, [Goma](https://chromium.googlesource.com/infra/goma/client/)
+is used to massively parallelize Chromium builds, which relies on
+Google's cloud-based build cluster infrastructure for dramatically
+reducing build times (e.g: clean builds < 30min). Unfortunately, for
+now, it's not publicly available, rather is limited to early access
+users :(
+
+By default, goma is enabled in Chromium builds configured using chr\_\*
+helper scritps, which should work out-of-the-box. To disable it, pass in
+`--no-goma` to `chr_set_config`/`chr_config`.
+
+#### Ditributed builds with Icecc
 
 After [install and configure icecc in you host system](
 https://github.com/icecc/icecream/blob/master/README.md#installation), export
@@ -54,11 +66,6 @@ bin paths to system `$PATH` var and export some necessary env variables, such as
 https://github.com/Gyuyoung/ChromiumBuild) described [here](
 https://blogs.igalia.com/gyuyoung/2018/01/11/share-my-experience-to-build-chromium-with-icecc/)*
 
-```
-ICECC_VERSION = /home/nick/projects/chromium/icecc/icecc_clang.tgz
-CCACHE_PREFIX = icecc
-```
-
 #### Configuring (generating `build.ninja` file)_
 
 As these scripts have been written with Igalia's Ozone/Wayland development
@@ -66,22 +73,17 @@ in mind, they assume you might need to maintain downstream and upstream builds
 in separate locations, so that they can be maintained simultaneosly, saving some
 time when switching over them.
 
-So, supposing you're working on upstream features (eg: upstream/master) and wishes
-to build `chrome` with Ozone/Wayland backend enabled, run:
+So, supposing you're working on upstream features (eg: upstream/master) and wants
+to build `chrome` with Ozone backends enabled, run:
 
 ```sh
-chr_config --variant=ozone --release upstream
+chr_config --variant=ozone --type=release
 ```
 This will generate build directory at `<path/to/this/repo>/src/out/release/ozone`.
 
 #### Building
 
-To build `chrome` target with no extra parameters, run:
-
-```sh
-chr_build
-```
-To build a different target or pass additional paramaters (e.g: number of jobs, etc), do:
+To build chrome or pass additional paramaters (e.g: number of jobs, etc), run:
 
 ```sh
 chr_build -j200 chrome
@@ -104,6 +106,6 @@ chr_run --user-data-dir=/tmp/x --in-process-gpu
 ### Focus/Scope
 
 Conceived and mainly intended to be used for Igalia's Ozone/Wayland/X11 development
-workflow, Even though it should be useful for general chromium devel, some features
+workflow. Even though it should be useful for general chromium devel, some features
 such as bash/zsh completion support only ozone/wayland/linux specific bits.
 
