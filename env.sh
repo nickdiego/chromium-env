@@ -293,6 +293,7 @@ on_build_finished() {
     } &> $build_log_file
 
     chr_build_running=0
+    trap - SIGINT
 }
 
 chr_build() {
