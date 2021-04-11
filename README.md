@@ -25,20 +25,22 @@ Fetching chromium sources at `<path/to/this/repo>/src`.
 ```sh
 gclient sync
 ```
-#### Ditributed builds with Goma
+#### Distributed builds with Goma
 
 Nowadays, [Goma](https://chromium.googlesource.com/infra/goma/client/)
-is used to massively parallelize Chromium builds, which relies on
-Google's cloud-based build cluster infrastructure for dramatically
-reducing build times (e.g: clean builds < 30min). Unfortunately, for
-now, it's not publicly available, rather is limited to early access
-users :(
+is used for running distributed builds of Chromium. It relies on
+Google's cloud-based build cluster infrastructure to provide a
+distributed cache mechanism and massively parallelize the compilation
+process, dramatically reducing build times (e.g: clean builds < 30min).
+
+*Unfortunately, for now, it's not publicly available, rather is limited
+to early access users :(*
 
 By default, goma is enabled in Chromium builds configured using chr\_\*
 helper scritps, which should work out-of-the-box. To disable it, pass in
 `--no-goma` to `chr_set_config`/`chr_config`.
 
-#### Ditributed builds with Icecc
+#### Distributed builds with Icecc
 
 After [install and configure icecc in you host system](
 https://github.com/icecc/icecream/blob/master/README.md#installation), export
