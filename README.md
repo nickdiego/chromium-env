@@ -8,7 +8,8 @@ building and running chrome and other chromium artifacts/tools.
 *Tested only on Arch Linux with recent versions of bash and zsh*
 
 A common setup would be cloning it in `$HOME`, for example. After
-[having installed the system dependencies](https://chromium.googlesource.com/chromium/src/+/master/docs/linux_build_instructions.md#Install-additional-build-dependencies), run the following to bootstrap the env:
+[having installed the system dependencies]( https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/linux/build_instructions.md#Install-additional-build-dependencies),
+run the following to bootstrap the env:
 
 ```sh
 source env.sh && chr_bootstrap
@@ -75,7 +76,7 @@ in mind, they assume you might need to maintain downstream and upstream builds
 in separate locations, so that they can be maintained simultaneosly, saving some
 time when switching over them.
 
-So, supposing you're working on upstream features (eg: upstream/master) and wants
+So, supposing you're working on upstream features (eg: origin/main) and wants
 to build `chrome` with Ozone backends enabled, run:
 
 ```sh
