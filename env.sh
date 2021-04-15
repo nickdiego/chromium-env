@@ -289,7 +289,7 @@ on_build_finished() {
         echo "========================= GOMA STATS BEGIN"
         goma_ctl stat
         echo "=========================== GOMA STATS END"
-        goma_ctl ensure_s
+        goma_ctl ensure_stop
     } &> $build_log_file
 
     chr_build_running=0
