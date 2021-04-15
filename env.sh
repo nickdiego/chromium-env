@@ -284,8 +284,7 @@ on_build_finished() {
     echo "Stopping Goma..." >&2
     trap "" SIGINT
     {
-        # Ensure compiler_proxy daemon is started
-        echo "Stop goma client...but before, some stats:"
+        echo "Stopping goma client...but before, some stats:"
         echo "========================= GOMA STATS BEGIN"
         goma_ctl stat
         echo "=========================== GOMA STATS END"
