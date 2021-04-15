@@ -293,7 +293,6 @@ on_build_finished() {
     } &> $build_log_file
 
     chr_build_running=0
-    trap - SIGINT
 }
 
 chr_build() {
@@ -311,6 +310,7 @@ chr_build() {
     result=$?
 
     on_build_finished
+    trap - SIGINT
 
     return $result
 }
