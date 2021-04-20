@@ -262,7 +262,7 @@ chr_config() {
 }
 
 on_build_starting() {
-    build_log_file=$(mktemp chr_build_XXXXXX.log)
+    build_log_file=$(mktemp /tmp/chr_build_XXXXXX.log)
     echo "Logging build details to ${build_log_file}." >&2
 
     (( use_ccache )) && ccache --zero-stats
