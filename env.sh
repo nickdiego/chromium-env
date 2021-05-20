@@ -234,6 +234,14 @@ chr_setconfig() {
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
     fi
 
+    # Handle Google Keys (getting them from env vars).
+    test -n "$GOOGLE_API_KEY" &&
+        gn_args+=( "google_api_key=\"$GOOGLE_API_KEY\"" )
+    test -n "$GOOGLE_DEFAULT_CLIENT_SECRET" &&
+        gn_args+=( "google_default_client_secret=\"$GOOGLE_DEFAULT_CLIENT_SECRET\"" )
+    test -n "$GOOGLE_DEFAULT_CLIENT_ID" &&
+        gn_args+=( "google_default_client_id=\"$GOOGLE_DEFAULT_CLIENT_ID\"" )
+
     if (( update_compdb )); then
         local compdb_targets=${CHR_COMPDB_TARGETS:-chrome}
         gn_opts+=(--export-compile-commands="$compdb_targets")
