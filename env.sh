@@ -102,7 +102,7 @@ chr_setconfig() {
     variant='linux'
     build_type='release'
     gn_args=( 'enable_nacl=false' 'proprietary_codecs=true'
-              'ffmpeg_branding="Chrome"')
+              'ffmpeg_branding="Chrome"' 'use_bundled_weston=true')
     extra_gn_args=()
 
     use_goma=1
@@ -155,9 +155,8 @@ chr_setconfig() {
         linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'use_system_minigbm=false' 'use_system_libdrm=true'
-                      'use_intel_minigbm=true' 'ozone_platform_x11=true'
-                      'use_x11=true')
+                      'ozone_platform_x11=true' 'use_system_libwayland=false'
+                      'use_bundled_weston=true')
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
             (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
@@ -229,7 +228,7 @@ chr_setconfig() {
         builddir_base='out'
         gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
         # Make it more debuggable even for release builds
-        gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' )
+        gn_args+=( 'symbol_level=1' 'dcheck_always_on=false' 'dcheck_is_configurable=true' )
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
