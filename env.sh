@@ -552,6 +552,8 @@ export CR_SOURCE_ROOT=$srcdir
 # nested root dirs (cipd help init).
 export GOMA_LOCAL_OUTPUT_CACHE_DIR="${chromiumdir}/cache/goma"
 export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
+# Required for lacros device builds.
+export GOMA_ARBITRARY_TOOLCHAIN_SUPPORT=1
 
 
 # Default config params
