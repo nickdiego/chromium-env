@@ -5,6 +5,10 @@ solutions = [
     "name": "src",
     "deps_file": ".DEPS.git",
     "custom_deps": {},
+    "custom_vars": {
+      "cros_boards": "amd64-generic",
+      "checkout_lacros_sdk": True,
+    },
   },
 ]
 target_os = ['chromeos']
