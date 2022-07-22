@@ -168,6 +168,7 @@ chr_setconfig() {
                       'use_system_minigbm=false' 'use_intel_minigbm=true')
             ;;
         lacros)
+            use_glib=0
             gn_args+=('target_os="chromeos"' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_auto_platforms=false'
                       'ozone_platform_wayland=true' 'ozone_platform="wayland"'
