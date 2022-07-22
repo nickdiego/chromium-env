@@ -89,7 +89,7 @@ chr_dump_config() {
     fi
 }
 
-_config_opts=( --variant=ozone --variant=cros --variant=lacros --variant=custom
+_config_opts=( --variant=linux --variant=cros --variant=lacros --variant=custom
                 --type=release --type=debug --no-glib --ccache --component
                 --check --no-goma --update-compdb --enable-lacros-support
                 --quiet)
@@ -99,7 +99,7 @@ chr_setconfig() {
     local use_glib=1
 
     # output
-    variant='ozone'
+    variant='linux'
     build_type='release'
     gn_args=( 'enable_nacl=false' 'proprietary_codecs=true'
               'ffmpeg_branding="Chrome"')
@@ -152,7 +152,7 @@ chr_setconfig() {
     done
 
     case "$variant" in
-        ozone)
+        linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
                       'use_system_minigbm=false' 'use_system_libdrm=true'
@@ -225,7 +225,7 @@ chr_setconfig() {
     (( use_glib )) && gn_args+=( 'use_glib=true' )
 
     if [ "$build_type" = 'release' ]; then
-        builddir_base='out/release'
+        builddir_base='out'
         gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
         # Make it more debuggable even for release builds
         gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' )
@@ -338,7 +338,7 @@ chr_run() {
     local is_lacros=0
 
     case "$variant" in
-        ozone)
+        linux)
             opts+=('--no-sandbox')
             if [[ "${extra_args[*]}" =~ --ozone-platform=wayland ]]; then
                 is_wayland=1
@@ -554,7 +554,7 @@ export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
 
 
 # Default config params
-CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=ozone}"
+CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=linux}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---type=release}"
 CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests,ozone_unittests}"
 
