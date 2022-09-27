@@ -333,13 +333,12 @@ chr_run() {
     local clear=${clear:-0}
     local ozone_plat_default=wayland
     local extra_args=("$@")
-    local opts=( --enable-logging=stderr )
+    local opts=( --enable-logging=stderr --no-sandbox )
     local is_wayland=0
     local is_lacros=0
 
     case "$variant" in
         linux)
-            opts+=('--no-sandbox')
             if [[ "${extra_args[*]}" =~ --ozone-platform=wayland ]]; then
                 is_wayland=1
             elif [[ ! "${extra_args[*]}" =~ --ozone-platform=.+ ]]; then
