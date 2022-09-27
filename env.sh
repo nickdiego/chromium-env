@@ -155,7 +155,7 @@ chr_setconfig() {
         linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'ozone_platform_x11=true' 'use_system_libwayland=false'
+                      'ozone_platform_x11=true' 'use_system_libwayland_client=false'
                       'use_bundled_weston=true')
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
