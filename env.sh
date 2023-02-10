@@ -155,8 +155,7 @@ chr_setconfig() {
         linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'ozone_platform_x11=true' 'use_system_libwayland_client=false'
-                      'use_bundled_weston=true')
+                      'ozone_platform_x11=true' 'use_bundled_weston=true')
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
             (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
@@ -173,8 +172,8 @@ chr_setconfig() {
                       'ozone_platform_wayland=true' 'ozone_platform="wayland"'
                       'ozone_platform_x11=false' 'use_system_minigbm=true'
                       'use_system_libdrm=true' 'use_wayland_gbm=false'
-                      'use_system_libwayland=false' 'use_glib=false'
-                      'use_gtk=false' 'chromeos_is_browser_only=true'
+                      'use_glib=false' 'use_gtk=false'
+                      'chromeos_is_browser_only=true'
                       'also_build_ash_chrome=false')
             ;;
     esac
@@ -228,7 +227,7 @@ chr_setconfig() {
         builddir_base='out'
         gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
         # Make it more debuggable even for release builds
-        gn_args+=( 'symbol_level=1' 'dcheck_always_on=false' 'dcheck_is_configurable=true' )
+        gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' 'dcheck_is_configurable=false' )
     else
         builddir_base='out/debug'
         gn_args+=( 'is_debug=true' 'symbol_level=1' )
