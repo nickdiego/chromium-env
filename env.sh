@@ -101,8 +101,7 @@ chr_setconfig() {
     # output
     variant='linux'
     build_type='release'
-    gn_args=( 'enable_nacl=false' 'proprietary_codecs=true'
-              'ffmpeg_branding="Chrome"' 'use_bundled_weston=true')
+    gn_args=( 'enable_nacl=false' 'proprietary_codecs=true' 'ffmpeg_branding="Chrome"')
     extra_gn_args=()
 
     use_goma=1
@@ -155,7 +154,7 @@ chr_setconfig() {
         linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'ozone_platform_x11=true' 'use_bundled_weston=true')
+                      'ozone_platform_x11=true')
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
             (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
