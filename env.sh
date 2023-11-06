@@ -26,13 +26,7 @@ chr_bootstrap() {
     echo "## Trying to bootstrap chromium env ${1:+(reason: $1)}" >&2
 
     _has git || { echo "!! Error: git not installed" >&2; return 1; }
-    _has python2 || { echo "!! Error: python2 not installed" >&2; return 1; }
-
     GIT_DIR="${chromiumdir}/.git" git submodule update --init --recursive
-    if [ ! -L "${chromiumdir}/tools/bin/python" ]; then
-        mkdir -pv ${chromiumdir}/tools/bin
-        ln -sv $(which python2) ${chromiumdir}/tools/bin/python
-    fi
 
     if [ $? -ne 0 ]; then
         echo "WARN: Bootstrap failed!" >&2
