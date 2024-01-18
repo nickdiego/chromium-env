@@ -85,8 +85,7 @@ chr_dump_config() {
 
 _config_opts=( --variant=linux --variant=cros --variant=lacros --variant=custom
                 --type=release --type=debug --no-glib --ccache --component
-                --check --no-goma --update-compdb --enable-lacros-support
-                --quiet)
+                --check --update-compdb --enable-lacros-support --quiet)
 chr_setconfig() {
     local quiet=0
     local use_component=0
@@ -98,7 +97,7 @@ chr_setconfig() {
     gn_args=( 'enable_nacl=false' 'proprietary_codecs=true' 'ffmpeg_branding="Chrome"')
     extra_gn_args=()
 
-    use_goma=1
+    use_reclient=1
     use_ccache=0
     use_icecc=0
     update_compdb=0
@@ -124,9 +123,6 @@ chr_setconfig() {
                 ;;
             --component)
                 use_component=1
-                ;;
-            --no-goma)
-                use_goma=0
                 ;;
             --update-compdb)
                 update_compdb=1
@@ -171,7 +167,7 @@ chr_setconfig() {
             ;;
     esac
 
-    if (( use_goma )); then
+    if (( use_reclient )); then
         use_component=1
         use_ccache=0
         use_icecc=0
@@ -190,9 +186,10 @@ chr_setconfig() {
         gn_args+=($args_val)
     done
 
-    # goma build
-    if (( use_goma )); then
-        gn_args+=( 'use_goma=true' )
+    # reclient build
+    if (( use_reclient )); then
+        gn_args+=('use_reclient=true'
+                  'rbe_cfg_dir="../../buildtools/reclient_cfgs/linux"')
     else
         # FIXME: Work around ENOENT errors for polymer.m.js
         gn_args+=( 'optimize_webui=false' )
@@ -209,7 +206,7 @@ chr_setconfig() {
     # component build
     if (( use_component )); then
         gn_args+=( 'is_component_build=true' )
-        (( use_goma )) || variant+='-component'
+        (( use_reclient )) || variant+='-component'
     fi
 
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
@@ -261,55 +258,15 @@ chr_config() {
     fi
 }
 
-on_build_starting() {
-    build_log_file=$(mktemp /tmp/chr_build_XXXXXX.log)
-    echo "Logging build details to ${build_log_file}." >&2
-
-    (( use_ccache )) && ccache --zero-stats
-
-    (( use_goma && !GOMA_DISABLED )) || return
-    echo "Ensuring Goma client is running.." >&2
-    {
-        # Ensure compiler_proxy daemon is started
-        echo "Starting goma client..."
-        goma_ctl ensure_start
-    } &> $build_log_file
-}
-
-on_build_finished() {
-    (( chr_build_running )) || return
-
-    local stop_goma=${stop_goma:-1}
-    (( use_goma && !GOMA_DISABLED && stop_goma )) || return
-    echo "Stopping Goma..." >&2
-    trap "" SIGINT
-    {
-        echo "Stopping goma client...but before, some stats:"
-        echo "========================= GOMA STATS BEGIN"
-        goma_ctl stat
-        echo "=========================== GOMA STATS END"
-        goma_ctl ensure_stop
-    } &> $build_log_file
-
-    chr_build_running=0
-}
-
 chr_build() {
     local artifact="${@:-chrome}"
     local wrapper='time'
     local cmd="$wrapper ninja -C $builddir $artifact"
     local result=0
 
-    on_build_starting
-    trap on_build_finished SIGINT
-    chr_build_running=1
-
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
     result=$?
-
-    on_build_finished
-    trap - SIGINT
 
     return $result
 }
@@ -408,33 +365,6 @@ chr_icecc_setup() {
     echo 'Done.'
 }
 
-_goma_setup_opts=( -u --update -l --login )
-chr_goma_setup() {
-    local update=0 login=0
-
-    # 2. Update goma client
-    test -n "$GOMA_INSTALL_DIR" || { echo "goma install dir not found"; return 1; }
-
-    while (( $# )); do
-        case $1 in
-            -u | --update) update=1;;
-            -l | --login) login=1;;
-        esac
-        shift
-    done
-
-    if (( update )); then
-        echo "Updating goma client: ${GOMA_INSTALL_DIR}"
-        cipd install infra/goma/client/linux-amd64 -root $GOMA_INSTALL_DIR
-    fi
-
-    if (( login )); then
-        # Ensure is authorized
-        goma_auth login
-    fi
-    echo 'Done.'
-}
-
 date_offset() {
     date -d "$(date +%m/%d/%Y) -$*" +%m/%d/%y
 }
@@ -491,12 +421,10 @@ if is_bash; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
     complete -W "${_list_patches_opts[*]}" chr_list_patches
-    complete -W "${_goma_setup_opts[*]}" chr_goma_setup
 elif is_zsh; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
     compctl -k "(${_list_patches_opts[*]})" chr_list_patches
-    compctl -k "(${_goma_setup_opts[*]})" chr_goma_setup
 fi
 
 # Setup depot_tools
@@ -536,15 +464,6 @@ ICECC_CCWRAPPER=${ICECC_CCWRAPPER:-$ICECC_INSTALL_DIR/libexec/icecc/compilerwrap
 # (e.g: out/Default). If this is not set, embedded web test server fail to
 # start cause it cannot find cert files.
 export CR_SOURCE_ROOT=$srcdir
-
-# Goma related vars
-# FIXME: Could not use ${chromiumdir}/tools/goma cause cipd does not allow
-# nested root dirs (cipd help init).
-export GOMA_LOCAL_OUTPUT_CACHE_DIR="${chromiumdir}/cache/goma"
-export GOMA_LOCAL_OUTPUT_CACHE_MAX_CACHE_AMOUNT_IN_MB=$((50*1024)) #50GB
-# Required for lacros device builds.
-export GOMA_ARBITRARY_TOOLCHAIN_SUPPORT=1
-
 
 # Default config params
 CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=linux}"

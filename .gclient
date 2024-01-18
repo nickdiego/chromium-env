@@ -9,6 +9,7 @@ solutions = [
       "checkout_nacl": True,
       "cros_boards": "amd64-generic",
       "checkout_lacros_sdk": True,
+      "rbe_instance": "projects/rbe-chromium-untrusted/instances/default_instance",
     },
   },
 ]
