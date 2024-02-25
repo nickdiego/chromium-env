@@ -188,7 +188,7 @@ chr_setconfig() {
 
     # reclient build
     if (( use_reclient )); then
-        gn_args+=('use_reclient=true'
+        gn_args+=('use_remoteexec=true'
                   'rbe_cfg_dir="../../buildtools/reclient_cfgs/linux"')
     else
         # FIXME: Work around ENOENT errors for polymer.m.js
@@ -261,7 +261,7 @@ chr_config() {
 chr_build() {
     local artifact="${@:-chrome}"
     local wrapper='time'
-    local cmd="$wrapper ninja -C $builddir $artifact"
+    local cmd="$wrapper autoninja -C $builddir $artifact"
     local result=0
 
     echo "Running cmd: $cmd"
