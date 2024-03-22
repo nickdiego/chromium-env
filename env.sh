@@ -300,7 +300,8 @@ chr_run() {
                          '--wayland-server-socket=wayland-exo'
                          '--no-startup-window --ash-dev-shortcuts')
             if (( cros_with_lacros_support )); then
-                extra_args+=('--enable-features=LacrosSupport'
+                cros_features='LacrosProfileMigrationForceOff,LacrosOnly'
+                extra_args+=("--enable-features=${cros_features}"
                              "--lacros-mojo-socket-for-testing=${lacros_sock}")
             fi
             ;;
