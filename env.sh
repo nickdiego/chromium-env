@@ -189,7 +189,7 @@ chr_setconfig() {
     # reclient build
     if (( use_reclient )); then
         gn_args+=('use_remoteexec=true'
-                  'rbe_cfg_dir="../../buildtools/reclient_cfgs/linux"')
+                  'reclient_cfg_dir="../../buildtools/reclient_cfgs/linux"')
     else
         # FIXME: Work around ENOENT errors for polymer.m.js
         gn_args+=( 'optimize_webui=false' )
