@@ -85,11 +85,13 @@ chr_dump_config() {
 
 _config_opts=( --variant=linux --variant=cros --variant=lacros --variant=custom
                 --type=release --type=debug --no-glib --ccache --component
-                --check --update-compdb --enable-lacros-support --quiet)
+                --check --update-compdb --enable-lacros-support --quiet
+                --no-siso)
 chr_setconfig() {
     local quiet=0
     local use_component=0
     local use_glib=1
+    local use_siso=1
 
     # output
     variant='linux'
@@ -129,6 +131,9 @@ chr_setconfig() {
                 ;;
             --enable-lacros-support)
                 cros_with_lacros_support=1
+                ;;
+            --no-siso)
+                use_siso=0
                 ;;
             --quiet|-q)
                 quiet=1
@@ -212,6 +217,8 @@ chr_setconfig() {
     (( use_ccache )) && gn_args+=( 'cc_wrapper="ccache"' )
 
     (( use_glib )) && gn_args+=( 'use_glib=true' )
+
+    (( use_siso )) && gn_args+=( 'use_siso=true' )
 
     if [ "$build_type" = 'release' ]; then
         builddir_base='out'
