@@ -144,7 +144,7 @@ chr_setconfig() {
         linux)
             gn_args+=('ozone_auto_platforms=false' 'use_ozone=true'
                       'use_xkbcommon=true' 'ozone_platform_wayland=true'
-                      'ozone_platform_x11=true')
+                      'ozone_platform_x11=true' 'use_bundled_weston=true')
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
             (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
