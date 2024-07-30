@@ -153,6 +153,10 @@ chr_setconfig() {
 
             (( enable_vaapi )) && gn_args+=('use_vaapi=true')
             (( cros_camera )) && gn_args+=('enable_chromeos_camera_capture=true')
+
+            # Disable custom chromium build of libvulkan.so as gtk4 fails to load
+            # with it. See https://issues.chromium.org/345261080.
+            gn_args+=('angle_shared_libvulkan=false')
             ;;
         cros)
             use_glib=0
