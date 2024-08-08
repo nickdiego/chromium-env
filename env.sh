@@ -283,7 +283,8 @@ chr_build() {
 }
 
 chr_get_user_data_dir() {
-  local dir="${user_dir:-${chromiumdir}/tmp/chr_tmp}_${variant}"
+  local suffix="${1:+-$1}"
+  local dir="${user_dir:-${chromiumdir}/tmp/user-data}-${variant}${suffix}"
   echo $dir
 }
 
@@ -296,14 +297,18 @@ chr_run() {
     local opts=( --enable-logging=stderr --no-sandbox )
     local is_wayland=0
     local is_lacros=0
+    local user_dir_suffix
 
     case "$variant" in
         linux)
+            user_dir_suffix=wayland
             if [[ "${extra_args[*]}" =~ --ozone-platform=wayland ]]; then
                 is_wayland=1
             elif [[ ! "${extra_args[*]}" =~ --ozone-platform=.+ ]]; then
                 echo "Using default ozone platform '$ozone_plat_default'"
                 extra_args+=( "--ozone-platform=${ozone_plat_default}" )
+            else
+                user_dir_suffix=x11
             fi
             ;;
         cros)
@@ -320,7 +325,7 @@ chr_run() {
             is_lacros=1
             ;;
     esac
-    user_dir="$(chr_get_user_data_dir)"
+    user_dir="$(chr_get_user_data_dir $user_dir_suffix)"
     opts+=("--user-data-dir=${user_dir}")
 
     if (( clear )) && [ -n "$user_dir" ]; then
