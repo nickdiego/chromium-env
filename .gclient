@@ -7,10 +7,8 @@ solutions = [
     "custom_deps": {},
     "custom_vars": {
       "checkout_nacl": True,
-      "cros_boards": "amd64-generic",
-      "checkout_lacros_sdk": True,
+      "checkout_mutter": True,
       "rbe_instance": "projects/rbe-chromium-untrusted/instances/default_instance",
     },
   },
 ]
-target_os=["chromeos"]
