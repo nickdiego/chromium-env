@@ -156,7 +156,10 @@ chr_setconfig() {
 
             # Disable custom chromium build of libvulkan.so as gtk4 fails to load
             # with it. See https://issues.chromium.org/345261080.
-            gn_args+=('angle_shared_libvulkan=false')
+            # gn_args+=('angle_shared_libvulkan=false')
+            #
+            # Fully disable vulkan for now? TODO: Add bug tracker?
+            gn_args+=('angle_enable_vulkan=false')
             ;;
         cros)
             use_glib=0
