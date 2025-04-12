@@ -228,13 +228,11 @@ chr_setconfig() {
     (( use_siso )) && gn_args+=( 'use_siso=true' )
 
     if [ "$build_type" = 'release' ]; then
-        builddir_base='out'
         gn_args+=( 'is_debug=false' 'blink_symbol_level=0' )
         # Make it more debuggable even for release builds
         gn_args+=( 'symbol_level=1' 'dcheck_always_on=true' 'dcheck_is_configurable=false' )
     else
-        builddir_base='out/debug'
-        gn_args+=( 'is_debug=true' 'symbol_level=1' )
+        gn_args+=( 'is_debug=true' 'symbol_level=2' 'use_debug_fission=false' )
     fi
 
     # Handle Google Keys (getting them from env vars).
@@ -250,7 +248,7 @@ chr_setconfig() {
         gn_opts+=(--export-compile-commands="$compdb_targets")
     fi
 
-    builddir="${builddir_base}/${variant}"
+    builddir="out/${variant}-${build_type}"
     lacros_sock='/tmp/lacros.sock'
 
     # Keep this at the end of this function
