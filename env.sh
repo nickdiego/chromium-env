@@ -289,7 +289,7 @@ chr_get_user_data_dir() {
   echo $dir
 }
 
-_run_opts=( chrome ozone_unittests interactive_ui_tests unit_tests
+_run_opts=( chrome ozone_unittests interactive_ui_tests unit_tests '-n' '--dry-run'
             '--ozone-platform=' '--vmodule=' '--enable-features=' '--restore-last-session'
             '--gtest_filter=' '--gtest_repeat=' )
 chr_run() {
@@ -303,6 +303,7 @@ chr_run() {
     local user_dir_suffix
     local exec='chrome'
     local -a extra_args
+    local dry_run=0
 
     case "$variant" in
         linux)
@@ -333,6 +334,7 @@ chr_run() {
 
     while (( $# )); do
         case $1 in
+            -n|--dry-run) dry_run=1;;
             --*) extra_args+=("$1");;
             *) exec="$1";;
         esac
@@ -374,7 +376,7 @@ chr_run() {
     fi
 
     echo "Running cmd: $cmd"
-    ( cd "$srcdir" && eval "$cmd" )
+    (( !dry_run )) && ( cd "$srcdir" && eval "$cmd" )
 }
 
 chr_icecc_setup() {
