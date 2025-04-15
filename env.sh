@@ -289,16 +289,20 @@ chr_get_user_data_dir() {
   echo $dir
 }
 
+_run_opts=( chrome ozone_unittests interactive_ui_tests unit_tests
+            '--ozone-platform=' '--vmodule=' '--enable-features=' '--restore-last-session'
+            '--gtest_filter=' '--gtest_repeat=' )
 chr_run() {
     local user_dir
     local wayland_ws=wayland
     local clear=${clear:-0}
     local ozone_plat_default=wayland
-    local extra_args=("$@")
     local opts=( --enable-logging=stderr --no-sandbox )
     local is_wayland=0
     local is_lacros=0
     local user_dir_suffix
+    local exec='chrome'
+    local -a extra_args
 
     case "$variant" in
         linux)
@@ -326,6 +330,26 @@ chr_run() {
             is_lacros=1
             ;;
     esac
+
+    while (( $# )); do
+        case $1 in
+            --*) extra_args+=("$1");;
+            *) exec="$1";;
+        esac
+        shift
+    done
+
+    exec="${builddir}/${exec}"
+    if [ ! -x "$exec" ]; then
+        echo "Error: Cannot find/exec '${exec}'" >&2
+        return 1
+    fi
+
+    if [[ "$exec" =~ "${builddir}/.+tests" ]]; then
+        extra_args+=('--gmock_verbose=error' '--gtest_break_on_failure'
+                     '--test-launcher-retry-limit=0' )
+    fi
+
     user_dir="$(chr_get_user_data_dir $user_dir_suffix)"
     opts+=("--user-data-dir=${user_dir}")
 
@@ -334,7 +358,7 @@ chr_run() {
         test -d "$user_dir" && rm -rf "$user_dir"
     fi
 
-    local cmd="${builddir}/chrome ${opts[*]} ${extra_args[*]}"
+    local cmd="${exec} ${opts[*]} ${extra_args[*]}"
     local -a env prefix_cmd
 
     if (( is_wayland )); then
@@ -438,10 +462,12 @@ chr_list_patches() {
 if is_bash; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
+    complete -W "${_run_opts[*]}" chr_run
     complete -W "${_list_patches_opts[*]}" chr_list_patches
 elif is_zsh; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
+    compctl -k "(${_run_opts[*]})" chr_run
     compctl -k "(${_list_patches_opts[*]})" chr_list_patches
 fi
 
