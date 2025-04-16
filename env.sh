@@ -18,6 +18,9 @@ gn_args=()
 
 use_icecc=${CHR_USE_ICECC:-1}
 
+# Commonly used chromium binaries.
+chromium_binaries=( chrome ozone_unittests interactive_ui_tests unit_tests )
+
 _has() {
     type $1 >/dev/null 2>&1
 }
@@ -270,12 +273,22 @@ chr_config() {
     fi
 }
 
+_build_opts=( "${chromium_binaries[@]}" '-j' '-o' '--offline' )
 chr_build() {
     local artifact="${@:-chrome}"
+    local -a extra_args
     local wrapper='time'
-    local cmd="$wrapper autoninja -C $builddir $artifact"
     local result=0
 
+    while (( $# )); do
+        case "$1" in
+            -*|--*) extra_args+=( "$1" );;
+            *) artifact="$1";;
+        esac
+        shift
+    done
+
+    local cmd="$wrapper autoninja ${extra_args[@]} -C $builddir $artifact"
     echo "Running cmd: $cmd"
     ( cd "$srcdir" && eval "$cmd" )
     result=$?
@@ -289,9 +302,8 @@ chr_get_user_data_dir() {
   echo $dir
 }
 
-_run_opts=( chrome ozone_unittests interactive_ui_tests unit_tests '-n' '--dry-run'
-            '--ozone-platform=' '--vmodule=' '--enable-features=' '--restore-last-session'
-            '--gtest_filter=' '--gtest_repeat=' )
+_run_opts=( "${chromium_binaries[@]}" '-n' '--dry-run' '--ozone-platform=' '--vmodule='
+            '--enable-features=' '--restore-last-session' '--gtest_filter=' '--gtest_repeat=' )
 chr_run() {
     local user_dir
     local wayland_ws=wayland
@@ -464,11 +476,13 @@ chr_list_patches() {
 if is_bash; then
     complete -W "${_config_opts[*]}" chr_setconfig
     complete -W "${_config_opts[*]}" chr_config
+    complete -W "${_build_opts[*]}" chr_build
     complete -W "${_run_opts[*]}" chr_run
     complete -W "${_list_patches_opts[*]}" chr_list_patches
 elif is_zsh; then
     compctl -k "(${_config_opts[*]})" chr_setconfig
     compctl -k "(${_config_opts[*]})" chr_config
+    compctl -k "(${_build_opts[*]})" chr_build
     compctl -k "(${_run_opts[*]})" chr_run
     compctl -k "(${_list_patches_opts[*]})" chr_list_patches
 fi
