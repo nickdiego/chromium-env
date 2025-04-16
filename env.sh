@@ -302,20 +302,24 @@ chr_get_user_data_dir() {
   echo $dir
 }
 
-_run_opts=( "${chromium_binaries[@]}" '-n' '--dry-run' '--ozone-platform=' '--vmodule='
-            '--enable-features=' '--restore-last-session' '--gtest_filter=' '--gtest_repeat=' )
+_run_opts=( "${chromium_binaries[@]}" '-n' '--dry-run' '--wrapper-cmd=gdb' '--wrapper-cmd='
+            '--ozone-platform=' '--vmodule=' '--enable-features=' '--restore-last-session'
+            '--gtest_filter=' '--gtest_repeat=' )
 chr_run() {
     local user_dir
     local wayland_ws=wayland
     local clear=${clear:-0}
     local ozone_plat_default=wayland
-    local opts=( --enable-logging=stderr --no-sandbox )
     local is_wayland=0
     local is_lacros=0
     local user_dir_suffix
+    local opts=( --enable-logging=stderr --no-sandbox )
     local exec='chrome'
-    local -a extra_args
     local dry_run=0
+    local -a env_vars=()
+    local -a extra_args=()
+    local wrapper_cmd
+    local cmd
 
     case "$variant" in
         linux)
@@ -324,6 +328,7 @@ chr_run() {
                 is_wayland=1
             elif [[ ! "${extra_args[*]}" =~ --ozone-platform=.+ ]]; then
                 echo "Using default ozone platform '$ozone_plat_default'"
+                is_wayland=1
                 extra_args+=( "--ozone-platform=${ozone_plat_default}" )
             else
                 user_dir_suffix=x11
@@ -347,6 +352,9 @@ chr_run() {
     while (( $# )); do
         case $1 in
             -n|--dry-run) dry_run=1;;
+            --wrapper-cmd=*)
+                wrapper_cmd="${1##--wrapper-cmd=}"
+                ;;
             --*) extra_args+=("$1");;
             *) exec="$1";;
         esac
@@ -372,20 +380,26 @@ chr_run() {
         test -d "$user_dir" && rm -rf "$user_dir"
     fi
 
-    local cmd="${exec} ${opts[*]} ${extra_args[*]}"
-    local -a env prefix_cmd
-
     if (( is_wayland )); then
-        cmd="env GDK_BACKEND=wayland $cmd"
-        # If running wayland compositor in an i3 session, move to the
-        # $wayland_ws workspace
-        _has 'i3-msg' && i3-msg workspace $wayland_ws
+        env_vars+=( 'GDK_BACKEND=wayland' )
     elif (( is_lacros )); then
-        env=('EGL_PLATFORM=surfaceless' 'WAYLAND_DISPLAY=wayland-exo')
-        prefix_cmd=('build/lacros/mojo_connection_lacros_launcher.py'
+        env_vars+=('EGL_PLATFORM=surfaceless' 'WAYLAND_DISPLAY=wayland-exo')
+        wrapper_cmd=('build/lacros/mojo_connection_lacros_launcher.py'
                     '-s' "$lacros_sock")
-        cmd="env ${env[*]} ${prefix_cmd[*]} $cmd"
     fi
+    cmd="${exec} ${opts[*]} ${extra_args[*]}"
+
+    if [ "$wrapper_cmd" = 'gdb' ]; then
+        cmd="gdb --args $cmd"
+        if [[ ! "$build_type" =~ '.*debug' ]]; then
+            echo "Warning: Running debugger with a non-debug build!" >&2
+            (( force )) || return 1
+        fi
+    elif [ -n "$wrapper_cmd" ]; then
+        cmd="${wrapper_cmd} $cmd"
+    fi
+
+    [ ${#env_vars} -gt 0 ] && cmd="env ${env_vars[*]} $cmd"
 
     echo "Running cmd: $cmd"
     (( !dry_run )) && ( cd "$srcdir" && eval "$cmd" )
