@@ -303,8 +303,8 @@ chr_get_user_data_dir() {
 }
 
 _run_opts=( "${chromium_binaries[@]}" '-n' '--dry-run' '--wrapper-cmd=gdb' '--wrapper-cmd='
-            '--ozone-platform=' '--vmodule=' '--enable-features=' '--restore-last-session'
-            '--gtest_filter=' '--gtest_repeat=' )
+            '--rebuild' '--ozone-platform=' '--vmodule=' '--enable-features='
+            '--restore-last-session' '--gtest_filter=' '--gtest_repeat=' )
 chr_run() {
     local user_dir
     local wayland_ws=wayland
@@ -320,6 +320,7 @@ chr_run() {
     local -a extra_args=()
     local wrapper_cmd
     local cmd
+    local rebuild=0
 
     case "$variant" in
         linux)
@@ -352,6 +353,7 @@ chr_run() {
     while (( $# )); do
         case $1 in
             -n|--dry-run) dry_run=1;;
+            --rebuild) rebuild=1;;
             --wrapper-cmd=*)
                 wrapper_cmd="${1##--wrapper-cmd=}"
                 ;;
@@ -361,13 +363,12 @@ chr_run() {
         shift
     done
 
-    exec="${builddir}/${exec}"
-    if [ ! -x "$exec" ]; then
-        echo "Error: Cannot find/exec '${exec}'" >&2
+    if [ ! -x "${builddir}/${exec}" ]; then
+        echo "Error: Cannot find/exec '${builddir}/${exec}'" >&2
         return 1
     fi
 
-    if [[ "$exec" =~ "${builddir}/.+tests" ]]; then
+    if [[ "$exec" =~ ".+tests" ]]; then
         extra_args+=('--gmock_verbose=error' '--gtest_break_on_failure'
                      '--test-launcher-retry-limit=0' )
     fi
@@ -387,7 +388,7 @@ chr_run() {
         wrapper_cmd=('build/lacros/mojo_connection_lacros_launcher.py'
                     '-s' "$lacros_sock")
     fi
-    cmd="${exec} ${opts[*]} ${extra_args[*]}"
+    cmd="${builddir}/${exec} ${opts[*]} ${extra_args[*]}"
 
     if [ "$wrapper_cmd" = 'gdb' ]; then
         cmd="gdb --args $cmd"
@@ -400,6 +401,11 @@ chr_run() {
     fi
 
     [ ${#env_vars} -gt 0 ] && cmd="env ${env_vars[*]} $cmd"
+
+    if  (( rebuild )); then
+        echo "Rebuilding '$exec' .." >&2
+        chr_build "$exec"
+    fi
 
     echo "Running cmd: $cmd"
     (( !dry_run )) && ( cd "$srcdir" && eval "$cmd" )
