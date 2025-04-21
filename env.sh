@@ -357,7 +357,9 @@ chr_run() {
             --wrapper-cmd=*)
                 wrapper_cmd="${1##--wrapper-cmd=}"
                 ;;
-            --*) extra_args+=("$1");;
+            --*|http?:/*|file:/*)
+                extra_args+=("$1")
+                ;;
             *) exec="$1";;
         esac
         shift
