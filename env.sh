@@ -273,27 +273,27 @@ chr_config() {
     fi
 }
 
-_build_opts=( "${chromium_binaries[@]}" '-j' '-o' '--offline' )
+_build_opts=( "${chromium_binaries[@]}" '-n' '--dry-run' '-j' '-o' '--offline' )
 chr_build() {
-    local artifact="${@:-chrome}"
-    local -a extra_args
+    declare -a targets
+    declare -a extra_args
     local wrapper='time'
-    local result=0
+    local dry_run=0
 
     while (( $# )); do
         case "$1" in
+            -n|--dry-run) dry_run=1;;
             -*|--*) extra_args+=( "$1" );;
-            *) artifact="$1";;
+            *) targets+=( "$1" );;
         esac
         shift
     done
+    # Build chrome when no target is passed in.
+    test ${#targets[@]} -gt 0 || artifacts = ('chrome')
 
-    local cmd="$wrapper autoninja ${extra_args[@]} -C $builddir $artifact"
+    local cmd="$wrapper autoninja ${extra_args[@]} -C $builddir ${targets[@]}"
     echo "Running cmd: $cmd"
-    ( cd "$srcdir" && eval "$cmd" )
-    result=$?
-
-    return $result
+    (( dry_run )) || ( cd "$srcdir" && eval "$cmd" )
 }
 
 chr_get_user_data_dir() {
