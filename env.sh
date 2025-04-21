@@ -406,7 +406,10 @@ chr_run() {
 
     if  (( rebuild )); then
         echo "Rebuilding '$exec' .." >&2
-        chr_build "$exec"
+        if ! chr_build "$exec"; then
+            echo "ERROR: Build failed. Aborting."
+            return 1
+        fi
     fi
 
     echo "Running cmd: $cmd"
