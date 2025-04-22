@@ -289,7 +289,7 @@ chr_build() {
         shift
     done
     # Build chrome when no target is passed in.
-    test ${#targets[@]} -gt 0 || artifacts = ('chrome')
+    test ${#targets[@]} -gt 0 || targets = ('chrome')
 
     local cmd="$wrapper autoninja ${extra_args[@]} -C $builddir ${targets[@]}"
     echo "Running cmd: $cmd"
