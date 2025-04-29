@@ -100,6 +100,7 @@ chr_setconfig() {
     variant='linux'
     build_type='release'
     gn_args=( 'enable_nacl=false' 'proprietary_codecs=true' 'ffmpeg_branding="Chrome"')
+    compdb_targets=( 'chrome' 'unit_tests' 'browser_tests' 'interactive_ui_tests' )
     extra_gn_args=()
 
     use_reclient=1
@@ -246,10 +247,8 @@ chr_setconfig() {
     test -n "$GOOGLE_DEFAULT_CLIENT_ID" &&
         gn_args+=( "google_default_client_id=\"$GOOGLE_DEFAULT_CLIENT_ID\"" )
 
-    if (( update_compdb )); then
-        local compdb_targets=${CHR_COMPDB_TARGETS:-chrome}
-        gn_opts+=(--export-compile-commands="$compdb_targets")
-    fi
+    (( update_compdb )) && \
+        gn_opts+=( $(printf "--add-export-compile-commands=%s\n" "${compdb_targets[@]}") )
 
     builddir="out/${variant}-${build_type}"
     lacros_sock='/tmp/lacros.sock'
