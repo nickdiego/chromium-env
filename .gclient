@@ -12,4 +12,4 @@ solutions = [
     },
   },
 ]
-target_os = ['chromeos']
+target_os = ['linux', 'chromeos', 'android']
