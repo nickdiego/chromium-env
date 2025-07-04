@@ -100,7 +100,8 @@ chr_setconfig() {
     variant='linux'
     build_type='release'
     gn_args=( 'enable_nacl=false' 'proprietary_codecs=true' 'ffmpeg_branding="Chrome"')
-    compdb_targets=( 'chrome' 'unit_tests' 'browser_tests' 'interactive_ui_tests' )
+    compdb_targets=( 'chrome' 'ozone_unittests' 'unit_tests' 'browser_tests'
+                     'interactive_ui_tests' )
     extra_gn_args=()
 
     use_reclient=1
