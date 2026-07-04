@@ -185,7 +185,6 @@ chr_setconfig() {
     esac
 
     if (( use_reclient )); then
-        use_component=1
         use_ccache=0
         use_icecc=0
     elif (( use_component )); then
