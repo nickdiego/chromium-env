@@ -555,6 +555,8 @@ CHR_CONFIG_TARGET="${CHR_CONFIG_TARGET:---variant=linux}"
 CHR_CONFIG_ARGS="${CHR_CONFIG_ARGS:---type=release}"
 CHR_COMPDB_TARGETS="${CHR_COMPDB_TARGETS:-chrome,views_unittests,interactive_ui_tests,ozone_unittests}"
 
+export SISO_CREDENTIAL_HELPER=gcloud
+
 chr_setconfig -q $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 
 # Set a sufficiently large limit for file descriptors (Goma builds with
