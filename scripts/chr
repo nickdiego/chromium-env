@@ -150,20 +150,21 @@ _chr_config() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --list-aliases)  list_aliases=1 ;;
-            -v|--verbose)    verbose=1 ;;
-            -n|--dry-run)    dry_run=1 ;;
-            --outdir=*)      outdir="${1##--outdir=}" ;;
-            --extra-args=*)  extra_args="${1##--extra-args=}" ;;
+            -l|--list-aliases) list_aliases=1 ;;
+            -v|--verbose)      verbose=1 ;;
+            -n|--dry-run)      dry_run=1 ;;
+            -o)                outdir="$2"; shift ;;
+            --outdir=*)        outdir="${1##--outdir=}" ;;
+            --extra-args=*)    extra_args="${1##--extra-args=}" ;;
             -h|--help)
                 cat >&2 <<'HELP'
 Usage: chr config ALIAS [options]
 
-  --list-aliases       List available build aliases
-  --outdir=DIR         Override output directory (default: out/ALIAS)
-  --extra-args=ARGS    Extra gn args appended after mb.py gen
-  -n, --dry-run        Print commands without executing
-  -v, --verbose        Show builder group/name with --list-aliases
+  -l, --list-aliases       List available build aliases
+  -o, --outdir=DIR         Override output directory (default: out/ALIAS)
+  --extra-args=ARGS        Extra gn args appended after mb.py gen
+  -n, --dry-run            Print commands without executing
+  -v, --verbose            Show builder group/name with --list-aliases
 HELP
                 return 0 ;;
             -*) echo "chr config: unknown option '$1'" >&2; return 1 ;;
