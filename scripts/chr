@@ -80,7 +80,7 @@ _chr_env() {
         local dir="$1"
         test -d "$dir" || return 0
         if [[ "$format" == 'fish' ]]; then
-            printf "set -gx PATH '%s' \$PATH\n" "$dir"
+            printf "fish_add_path '%s'\n" "$dir"
         else
             printf "export PATH='%s':\$PATH\n" "$dir"
         fi
