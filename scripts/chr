@@ -133,8 +133,103 @@ _chr_bootstrap() {
 }
 
 _chr_config() {
-    echo "chr config: not yet implemented" >&2
-    return 1
+    # Alias → "builder_group|builder_name"
+    declare -A _aliases=(
+        [linux]="tryserver.chromium.linux|linux-rel"
+        [linux-wayland]="chromium.linux|Linux Builder (Wayland)"
+        [linux-dbg]="chromium.linux|Linux Builder (dbg)"
+        [cros]="tryserver.chromium.chromiumos|linux-chromeos-rel"
+    )
+
+    local alias_name=''
+    local outdir=''
+    local extra_args=''
+    local list_aliases=0
+    local verbose=0
+    local dry_run=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --list-aliases)  list_aliases=1 ;;
+            -v|--verbose)    verbose=1 ;;
+            -n|--dry-run)    dry_run=1 ;;
+            --outdir=*)      outdir="${1##--outdir=}" ;;
+            --extra-args=*)  extra_args="${1##--extra-args=}" ;;
+            -h|--help)
+                cat >&2 <<'HELP'
+Usage: chr config ALIAS [options]
+
+  --list-aliases       List available build aliases
+  --outdir=DIR         Override output directory (default: out/ALIAS)
+  --extra-args=ARGS    Extra gn args appended after mb.py gen
+  -n, --dry-run        Print commands without executing
+  -v, --verbose        Show builder group/name with --list-aliases
+HELP
+                return 0 ;;
+            -*) echo "chr config: unknown option '$1'" >&2; return 1 ;;
+            *)  alias_name="$1" ;;
+        esac
+        shift
+    done
+
+    if [[ $list_aliases -eq 1 ]]; then
+        for key in "${!_aliases[@]}"; do
+            if [[ $verbose -eq 1 ]]; then
+                local val="${_aliases[$key]}"
+                printf "%-16s  %s / %s\n" "$key" "${val%%|*}" "${val##*|}"
+            else
+                echo "$key"
+            fi
+        done | sort
+        return 0
+    fi
+
+    if [[ -z "$alias_name" ]]; then
+        echo "chr config: alias required. Run 'chr config --list-aliases' to see options." >&2
+        return 1
+    fi
+
+    local entry="${_aliases[$alias_name]}"
+    if [[ -z "$entry" ]]; then
+        echo "chr config: unknown alias '$alias_name'. Run 'chr config --list-aliases' to see options." >&2
+        return 1
+    fi
+
+    local group="${entry%%|*}"
+    local builder="${entry##*|}"
+    local resolved_outdir="${outdir:-out/$alias_name}"
+    local abs_outdir="$srcdir/$resolved_outdir"
+    local gn="$srcdir/buildtools/linux64/gn"
+
+    echo "## chr config: $alias_name -> $resolved_outdir" >&2
+    echo "##   builder: $group / $builder" >&2
+    [[ -n "$extra_args" ]] && echo "##   extra args: $extra_args" >&2
+
+    if [[ $dry_run -eq 1 ]]; then
+        echo "(cd $srcdir && python3 tools/mb/mb.py gen -m '$group' -b '$builder' '$abs_outdir')" >&2
+        [[ -n "$extra_args" ]] && echo "echo '$extra_args' >> $abs_outdir/args.gn && $gn gen '$abs_outdir'" >&2
+        return 0
+    fi
+
+    ( cd "$srcdir" && python3 tools/mb/mb.py gen -m "$group" -b "$builder" "$abs_outdir" )
+    local ret=$?
+    [[ $ret -ne 0 ]] && { echo "chr config: mb.py gen failed" >&2; return $ret; }
+
+    if [[ -n "$extra_args" ]]; then
+        echo "$extra_args" >> "$abs_outdir/args.gn"
+        echo "## Appended extra args, re-running gn gen..." >&2
+        ( cd "$srcdir" && "$gn" gen "$abs_outdir" )
+        ret=$?
+        [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed after extra-args" >&2; return $ret; }
+    fi
+
+    _chr_save_state \
+        "CHR_ALIAS=$alias_name" \
+        "CHR_BUILDER_GROUP=$group" \
+        "CHR_BUILDER=$builder" \
+        "CHR_OUTDIR=$resolved_outdir"
+
+    echo "## State saved -> $_CHR_STATE_FILE" >&2
 }
 
 _chr_build() {
