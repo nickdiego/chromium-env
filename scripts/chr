@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# chr - Chromium development helper
+# Usage: chr <subcommand> [options]
+
+_CHR_SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+chromiumdir=$(dirname "$_CHR_SCRIPTDIR")
+srcdir="$chromiumdir/src"
+_CHR_STATE_FILE="$chromiumdir/.chr_state"
+
+_chr_load_state() {
+    test -f "$_CHR_STATE_FILE" && source "$_CHR_STATE_FILE"
+}
+
+_chr_save_state() {
+    local file="$_CHR_STATE_FILE"
+    > "$file"
+    for pair in "$@"; do
+        echo "$pair" >> "$file"
+    done
+}
+
+_chr_help() {
+    cat <<'EOF'
+chr - Chromium development helper
+
+Subcommands:
+  bootstrap   Initialize submodules and set up for first use
+  env         Print environment setup commands for the current shell
+  config      Configure and generate build files
+  build       Build targets (coming soon)
+  run         Run a built binary (coming soon)
+
+Options:
+  -h, --help  Show this help
+
+Examples (fish):
+  source (chr env)           # set up environment variables
+  chr config linux-wayland   # configure for linux wayland build
+  chr build                  # build chrome (uses last config)
+
+Examples (bash/zsh):
+  eval "$(chr env --bash)"   # set up environment variables
+EOF
+}
+
+_chr_env() {
+    local format='fish'
+    local include_icecc=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --bash|--sh) format='bash' ;;
+            --icecc)     include_icecc=1 ;;
+            -h|--help)
+                echo "Usage: chr env [--bash|--sh] [--icecc]" >&2
+                echo "" >&2
+                echo "  --bash, --sh  Print bash/sh-compatible export commands" >&2
+                echo "  --icecc       Include icecc-related variables" >&2
+                echo "" >&2
+                echo "Fish usage:     source (chr env)" >&2
+                echo "Bash/zsh usage: eval \"\$(chr env --bash)\"" >&2
+                return 0
+                ;;
+        esac
+        shift
+    done
+
+    # Emit a single exported variable
+    _emit_var() {
+        local key="$1" val="$2"
+        if [[ "$format" == 'fish' ]]; then
+            printf "set -gx %s '%s'\n" "$key" "$val"
+        else
+            printf "export %s='%s'\n" "$key" "$val"
+        fi
+    }
+
+    # Prepend a directory to PATH (skips if dir doesn't exist)
+    _emit_path_prepend() {
+        local dir="$1"
+        test -d "$dir" || return 0
+        if [[ "$format" == 'fish' ]]; then
+            printf "set -gx PATH '%s' \$PATH\n" "$dir"
+        else
+            printf "export PATH='%s':\$PATH\n" "$dir"
+        fi
+    }
+
+    # Chrome source root — needed by embedded test server to find cert files
+    _emit_var CR_SOURCE_ROOT "$srcdir"
+
+    # Siso (remote build) credential helper
+    _emit_var SISO_CREDENTIAL_HELPER "gcloud"
+
+    # Boto config for gsutil (cloud storage auth)
+    if [[ -r "$HOME/.boto" ]]; then
+        _emit_var NO_AUTH_BOTO_CONFIG "$HOME/.boto"
+    fi
+
+    # PATH: depot_tools
+    _emit_path_prepend "$chromiumdir/tools/depot_tools"
+
+    # PATH: LLVM/clang binaries built with chromium
+    _emit_path_prepend "$srcdir/third_party/llvm-build/Release+Asserts/bin"
+
+    # ICECC (distributed compilation, optional)
+    if [[ $include_icecc -eq 1 ]]; then
+        local icecc_install="${ICECC_INSTALL_DIR:-/usr/lib/icecream}"
+        _emit_var ICECC_DATA_DIR    "$chromiumdir/icecc"
+        _emit_var ICECC_INSTALL_DIR "$icecc_install"
+        _emit_var ICECC_CREATEENV   "${ICECC_CREATEENV:-$icecc_install/bin/icecc-create-env}"
+        _emit_var ICECC_CCWRAPPER   "${ICECC_CCWRAPPER:-$icecc_install/libexec/icecc/compilerwrapper}"
+    fi
+}
+
+_chr_bootstrap() {
+    echo "## chr bootstrap: initializing chromium submodules" >&2
+    if ! command -v git &>/dev/null; then
+        echo "Error: git not found in PATH" >&2
+        return 1
+    fi
+    git -C "$chromiumdir" submodule update --init --recursive
+    local ret=$?
+    if [[ $ret -eq 0 ]]; then
+        echo "" >&2
+        echo "Bootstrap complete. Set up your shell environment:" >&2
+        echo "  fish:     source (chr env)" >&2
+        echo "  bash/zsh: eval \"\$(chr env --bash)\"" >&2
+    else
+        echo "Bootstrap failed!" >&2
+    fi
+    return $ret
+}
+
+_chr_config() {
+    echo "chr config: not yet implemented" >&2
+    return 1
+}
+
+_chr_build() {
+    echo "chr build: not yet implemented" >&2
+    return 1
+}
+
+_chr_run() {
+    echo "chr run: not yet implemented" >&2
+    return 1
+}
+
+# --- main dispatch ---
+cmd="${1:-help}"
+shift 2>/dev/null
+
+case "$cmd" in
+    bootstrap)   _chr_bootstrap "$@" ;;
+    env)         _chr_env       "$@" ;;
+    config)      _chr_config    "$@" ;;
+    build)       _chr_build     "$@" ;;
+    run)         _chr_run       "$@" ;;
+    help|-h|--help) _chr_help ;;
+    *) echo "chr: unknown subcommand '$cmd'. Run 'chr help' for usage." >&2; exit 1 ;;
+esac

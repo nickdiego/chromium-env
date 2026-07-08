@@ -13,3 +13,4 @@
 /logs/
 /*-chrome-linux.zip
 /.reproxy_cache/
+/.chr_state
