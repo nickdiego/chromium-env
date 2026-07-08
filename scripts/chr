@@ -34,7 +34,7 @@ Options:
   -h, --help  Show this help
 
 Examples (fish):
-  source (chr env)           # set up environment variables
+  chr env | source           # set up environment variables
   chr config linux-wayland   # configure for linux wayland build
   chr build                  # build chrome (uses last config)
 
@@ -57,7 +57,7 @@ _chr_env() {
                 echo "  --bash, --sh  Print bash/sh-compatible export commands" >&2
                 echo "  --icecc       Include icecc-related variables" >&2
                 echo "" >&2
-                echo "Fish usage:     source (chr env)" >&2
+                echo "Fish usage:     chr env | source" >&2
                 echo "Bash/zsh usage: eval \"\$(chr env --bash)\"" >&2
                 return 0
                 ;;
@@ -124,7 +124,7 @@ _chr_bootstrap() {
     if [[ $ret -eq 0 ]]; then
         echo "" >&2
         echo "Bootstrap complete. Set up your shell environment:" >&2
-        echo "  fish:     source (chr env)" >&2
+        echo "  fish:     chr env | source" >&2
         echo "  bash/zsh: eval \"\$(chr env --bash)\"" >&2
     else
         echo "Bootstrap failed!" >&2
