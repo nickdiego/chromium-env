@@ -70,20 +70,9 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -a '(__chr_config_aliases)'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
-    -l group -r -d 'Builder group' -a '(__chr_mb_groups)'
+    -f -a '(__chr_mb_group_completions)'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
-    -l builder -r -d 'Builder name' -a '(__chr_mb_builders)'
-
-# All builder groups from gn_args_locations.json
-function __chr_mb_groups
-    set -l f ~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
-    test -f $f; or return
-    python3 -c "
-import json, sys
-for g in sorted(json.load(open(sys.argv[1]))):
-    print(g)
-" $f 2>/dev/null
-end
+    -f -a '(__chr_mb_builder_completions)'
 
 # Extract the current --group= value from the command line tokens
 function __chr_config_group_value
@@ -101,8 +90,19 @@ function __chr_config_group_value
     end
 end
 
-# Builders within the currently typed --group value
-function __chr_mb_builders
+# --group=VALUE completions: all groups from gn_args_locations.json
+function __chr_mb_group_completions
+    set -l f ~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
+    test -f $f; or return
+    python3 -c "
+import json, sys
+for g in sorted(json.load(open(sys.argv[1]))):
+    print('--group=' + g)
+" $f 2>/dev/null
+end
+
+# --builder=VALUE completions: builders for the current --group, only if the group is valid
+function __chr_mb_builder_completions
     set -l group (__chr_config_group_value)
     test -n "$group"; or return
     set -l f ~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
@@ -113,7 +113,7 @@ d = json.load(open(sys.argv[1]))
 g = sys.argv[2]
 if g in d:
     for b in sorted(d[g]):
-        print(b)
+        print('--builder=' + b)
 " $f $group 2>/dev/null
 end
 
