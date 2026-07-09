@@ -52,8 +52,14 @@ _chr_gn_build_args() {
     local outdir
     outdir=$(grep -m1 '^CHR_CONFIG_OUTDIR=' "$state" | cut -d= -f2-)
     [[ -n "$outdir" && -d "$chr/src/$outdir" ]] || return
+    local -a _blocklist=(
+        coverage_instrumentation_input_file
+    )
+    local _block_pat; _block_pat="^($(IFS='|'; echo "${_blocklist[*]}"))="
+
     (cd "$chr/src" && "$gn" args "$outdir" --list --short 2>/dev/null) \
-        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {print $1 "="}'
+        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {print $1 "="}' \
+        | grep -vE "$_block_pat"
 }
 
 # ---- main completion --------------------------------------------------------

@@ -130,10 +130,15 @@ function __chr_gn_build_args
     test -n "$outdir"; or return
     test -d $chr_dir/src/$outdir; or return
 
+    set -l _blocklist \
+        coverage_instrumentation_input_file
+    set -l _block_pat "^("(string join '|' $_blocklist)")="
+
     # gn must run from src/ where .gn lives; awk converts "name = value" -> "name=\tvalue"
     cd $chr_dir/src
     and $gn args $outdir --list --short 2>/dev/null \
-        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}'
+        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}' \
+        | grep -vE $_block_pat
 end
 
 # --- chr config (after --): gn gen flags and gn build args ---
