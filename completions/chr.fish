@@ -68,6 +68,27 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -a '(__chr_config_aliases)'
 
-# --- chr config (after --): gn gen flags ---
+# gn build args (key=value) from the last configured outdir in .chr_state
+function __chr_gn_build_args
+    set -l chr_dir ~/projects/chromium
+    set -l gn $chr_dir/src/buildtools/linux64/gn
+
+    test -x $gn; or return
+    test -f $chr_dir/.chr_state; or return
+
+    set -l outdir (grep -m1 '^CHR_CONFIG_OUTDIR=' $chr_dir/.chr_state \
+                   | string replace 'CHR_CONFIG_OUTDIR=' '')
+    test -n "$outdir"; or return
+    test -d $chr_dir/src/$outdir; or return
+
+    # gn must run from src/ where .gn lives; awk converts "name = value" -> "name=\tvalue"
+    cd $chr_dir/src
+    and $gn args $outdir --list --short 2>/dev/null \
+        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}'
+end
+
+# --- chr config (after --): gn gen flags and gn build args ---
 complete -c chr -n '__fish_seen_subcommand_from config; and __chr_config_after_dashdash' \
     -a '(__chr_gn_gen_flags)'
+complete -c chr -n '__fish_seen_subcommand_from config; and __chr_config_after_dashdash' \
+    -a '(__chr_gn_build_args)'
