@@ -91,17 +91,11 @@ _chr_gn_build_args() {
     local outdir
     outdir=$(grep -m1 '^CHR_CONFIG_OUTDIR=' "$state" | cut -d= -f2-)
     [[ -n $outdir && -d "$chr/src/$outdir" ]] || return
-    local -a _blocklist=(
-        coverage_instrumentation_input_file
-    )
-    local _block_pat="^(${(j:|:)_blocklist})="
-
     local -a names descs n d
     while IFS=$'\t' read -r n d; do
         names+=("$n"); descs+=("[$d]")
     done < <((cd "$chr/src" && "$gn" args "$outdir" --list --short 2>/dev/null) \
-        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}' \
-        | grep -vE "$_block_pat")
+        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}')
     [[ ${#names} -gt 0 ]] && compadd -S '' -d descs -a names
 }
 
