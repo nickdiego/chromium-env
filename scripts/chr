@@ -205,14 +205,29 @@ HELP
     local abs_outdir="$srcdir/$resolved_outdir"
     local gn="$srcdir/buildtools/linux64/gn"
 
+    # Split post-'--' args: --flags go to gn gen, key=value go to args.gn
+    local -a gn_flags=()
+    local -a gn_build_args=()
+    for arg in "${extra_gn_args[@]}"; do
+        if [[ "$arg" == --* ]]; then
+            gn_flags+=("$arg")
+        else
+            gn_build_args+=("$arg")
+        fi
+    done
+
     echo "## chr config: $alias_name -> $resolved_outdir" >&2
     echo "##   builder: $group / $builder" >&2
-    [[ ${#extra_gn_args[@]} -gt 0 ]] && echo "##   extra gn args: ${extra_gn_args[*]}" >&2
+    [[ ${#gn_build_args[@]} -gt 0 ]] && echo "##   extra gn args: ${gn_build_args[*]}" >&2
+    [[ ${#gn_flags[@]} -gt 0 ]]      && echo "##   extra gn flags: ${gn_flags[*]}" >&2
 
     if [[ $dry_run -eq 1 ]]; then
         echo "(cd $srcdir && python3 tools/mb/mb.py gen -m '$group' -b '$builder' '$abs_outdir')" >&2
-        [[ ${#extra_gn_args[@]} -gt 0 ]] && \
-            echo "printf '%s\n' ${extra_gn_args[*]} >> $abs_outdir/args.gn && $gn gen '$abs_outdir'" >&2
+        if [[ ${#gn_build_args[@]} -gt 0 || ${#gn_flags[@]} -gt 0 ]]; then
+            [[ ${#gn_build_args[@]} -gt 0 ]] && \
+                echo "printf '%s\n' ${gn_build_args[*]} >> $abs_outdir/args.gn" >&2
+            echo "$gn gen ${gn_flags[*]} '$abs_outdir'" >&2
+        fi
         return 0
     fi
 
@@ -220,12 +235,12 @@ HELP
     local ret=$?
     [[ $ret -ne 0 ]] && { echo "chr config: mb.py gen failed" >&2; return $ret; }
 
-    if [[ ${#extra_gn_args[@]} -gt 0 ]]; then
-        printf '%s\n' "${extra_gn_args[@]}" >> "$abs_outdir/args.gn"
-        echo "## Appended extra gn args, re-running gn gen..." >&2
-        ( cd "$srcdir" && "$gn" gen "$abs_outdir" )
+    if [[ ${#gn_build_args[@]} -gt 0 || ${#gn_flags[@]} -gt 0 ]]; then
+        [[ ${#gn_build_args[@]} -gt 0 ]] && printf '%s\n' "${gn_build_args[@]}" >> "$abs_outdir/args.gn"
+        echo "## Re-running gn gen..." >&2
+        ( cd "$srcdir" && "$gn" gen "${gn_flags[@]}" "$abs_outdir" )
         ret=$?
-        [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed after extra gn args" >&2; return $ret; }
+        [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed" >&2; return $ret; }
     fi
 
     _chr_save_state \
