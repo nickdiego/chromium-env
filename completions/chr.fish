@@ -64,6 +64,8 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -s n -l dry-run -d 'Print commands without executing'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+    -s u -l update-compdb -d 'Regenerate compile_commands.json and update symlink'
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -s o -l outdir -r -d 'Override output directory'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -a '(__chr_config_aliases)'

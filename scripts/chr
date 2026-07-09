@@ -150,14 +150,16 @@ _chr_config() {
     local list_aliases=0
     local verbose=0
     local dry_run=0
+    local update_compdb=0
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -l|--list-aliases) list_aliases=1 ;;
-            -v|--verbose)      verbose=1 ;;
-            -n|--dry-run)      dry_run=1 ;;
-            -o)                outdir="$2"; shift ;;
-            --outdir=*)        outdir="${1##--outdir=}" ;;
+            -l|--list-aliases)  list_aliases=1 ;;
+            -v|--verbose)       verbose=1 ;;
+            -n|--dry-run)       dry_run=1 ;;
+            -u|--update-compdb) update_compdb=1 ;;
+            -o)                 outdir="$2"; shift ;;
+            --outdir=*)         outdir="${1##--outdir=}" ;;
             --) shift; extra_gn_args=("$@"); break ;;
             -h|--help)
                 cat >&2 <<'HELP'
@@ -166,8 +168,9 @@ Usage: chr config ALIAS [options] [-- GN_ARG...]
   -l, --list-aliases       List available build aliases
   -o, --outdir=DIR         Override output directory (default: out/ALIAS)
   -n, --dry-run            Print commands without executing
+  -u, --update-compdb      Regenerate compile_commands.json and update symlink
   -v, --verbose            Show builder group/name with --list-aliases
-  -- GN_ARG...             Extra gn args appended to args.gn after mb.py gen
+  -- GN_ARG...             Extra gn args/flags passed to gn gen
 HELP
                 return 0 ;;
             -*) echo "chr config: unknown option '$1'" >&2; return 1 ;;
@@ -216,6 +219,9 @@ HELP
         fi
     done
 
+    # --update-compdb: inject --export-compile-commands into gn gen
+    [[ $update_compdb -eq 1 ]] && gn_flags+=("--export-compile-commands")
+
     echo "## chr config: $alias_name -> $resolved_outdir" >&2
     echo "##   builder: $group / $builder" >&2
     [[ ${#gn_build_args[@]} -gt 0 ]] && echo "##   extra gn args: ${gn_build_args[*]}" >&2
@@ -228,6 +234,8 @@ HELP
                 echo "printf '%s\n' ${gn_build_args[*]} >> $abs_outdir/args.gn" >&2
             echo "$gn gen ${gn_flags[*]} '$abs_outdir'" >&2
         fi
+        [[ $update_compdb -eq 1 ]] && \
+            echo "ln -sfn '$resolved_outdir/compile_commands.json' '$srcdir/compile_commands.json'" >&2
         return 0
     fi
 
@@ -241,6 +249,18 @@ HELP
         ( cd "$srcdir" && "$gn" gen "${gn_flags[@]}" "$abs_outdir" )
         ret=$?
         [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed" >&2; return $ret; }
+    fi
+
+    if [[ $update_compdb -eq 1 ]]; then
+        local compdb_src="$abs_outdir/compile_commands.json"
+        local compdb_link="$srcdir/compile_commands.json"
+        if [[ -f "$compdb_src" ]]; then
+            # Use a relative target so the symlink stays valid if srcdir moves
+            ln -sfn "$resolved_outdir/compile_commands.json" "$compdb_link"
+            echo "## Updated $compdb_link -> $resolved_outdir/compile_commands.json" >&2
+        else
+            echo "chr config: compile_commands.json not found at $compdb_src" >&2
+        fi
     fi
 
     _chr_save_state \
