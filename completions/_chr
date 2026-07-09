@@ -1,0 +1,173 @@
+#compdef chr
+# Zsh completions for chr — chromium development helper
+#
+# Activate: add to ~/.zshrc before compinit —
+#   fpath=(~/projects/chromium/completions $fpath)
+
+# ---- helpers ----------------------------------------------------------------
+
+_chr_mb_groups() {
+    local f=~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
+    [[ -f $f ]] || return
+    local -a groups
+    groups=("${(@f)$(python3 -c "
+import json, sys
+for g in sorted(json.load(open(sys.argv[1]))):
+    print(g)
+" $f 2>/dev/null)}")
+    _values 'builder group' "${groups[@]}"
+}
+
+_chr_mb_builders() {
+    # Find --group value from the current command line
+    local group='' i t
+    for (( i = 1; i <= $#words; i++ )); do
+        t="$words[i]"
+        if [[ $t == --group=* ]]; then
+            group="${t#--group=}"; break
+        elif [[ $t == --group ]] && (( i < $#words )); then
+            group="$words[i+1]"; break
+        fi
+    done
+    [[ -n $group ]] || return
+    local f=~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
+    [[ -f $f ]] || return
+    local -a builders
+    builders=("${(@f)$(python3 -c "
+import json, sys
+d = json.load(open(sys.argv[1]))
+g = sys.argv[2]
+if g in d:
+    for b in sorted(d[g]):
+        print(b)
+" $f "$group" 2>/dev/null)}")
+    [[ ${#builders} -gt 0 ]] && _values 'builder' "${builders[@]}"
+}
+
+_chr_config_aliases() {
+    local -a aliases
+    local line key rest
+    while IFS='' read -r line; do
+        key="${line%% *}"
+        rest="${line##*  }"
+        aliases+=("${key}:${rest}")
+    done < <(chr config -l -v 2>/dev/null)
+    [[ ${#aliases} -gt 0 ]] && _describe 'build alias' aliases
+}
+
+_chr_gn_flags() {
+    # Hardcoded well-known flags with descriptions (--check only in prose)
+    local -a flags
+    flags=(
+        '--check:Check header dependency correctness'
+        '--check=system:Also check system headers'
+        '--ide=json:JSON compile commands'
+        '--ide=eclipse:Eclipse CDT'
+        '--ide=qtcreator:QtCreator'
+        '--ide=xcode:Xcode'
+        '--ide=vs:Visual Studio'
+    )
+    _describe 'gn gen flag' flags
+    local gn=~/projects/chromium/src/buildtools/linux64/gn
+    [[ -x $gn ]] || return
+    # Remaining flags parsed from gn help gen; split into =VALUE and boolean
+    local -a dyn dyn_eq dyn_noeq f
+    dyn=("${(@f)$($gn help gen 2>/dev/null \
+        | grep -oP '^ {2}\K--[a-zA-Z][a-zA-Z0-9-]*=?' \
+        | grep -v '^--ide=' | grep -v '^--check' \
+        | sort -u)}")
+    for f in "${dyn[@]}"; do
+        if [[ $f == *= ]]; then dyn_eq+=($f); else dyn_noeq+=($f); fi
+    done
+    [[ ${#dyn_eq}   -gt 0 ]] && compadd -S '' -a dyn_eq
+    [[ ${#dyn_noeq} -gt 0 ]] && compadd     -a dyn_noeq
+}
+
+_chr_gn_build_args() {
+    local chr=~/projects/chromium
+    local gn="$chr/src/buildtools/linux64/gn"
+    local state="$chr/.chr_state"
+    [[ -x $gn && -f $state ]] || return
+    local outdir
+    outdir=$(grep -m1 '^CHR_CONFIG_OUTDIR=' "$state" | cut -d= -f2-)
+    [[ -n $outdir && -d "$chr/src/$outdir" ]] || return
+    local -a names descs n d
+    while IFS=$'\t' read -r n d; do
+        names+=("$n"); descs+=("[$d]")
+    done < <((cd "$chr/src" && "$gn" args "$outdir" --list --short 2>/dev/null) \
+        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}')
+    [[ ${#names} -gt 0 ]] && compadd -S '' -d descs -a names
+}
+
+# ---- subcommand functions ---------------------------------------------------
+
+_chr_env() {
+    _arguments \
+        '--bash[Print bash-compatible exports]' \
+        '--sh[Print POSIX sh exports]' \
+        '--icecc[Include icecc variables]'
+}
+
+_chr_config() {
+    # Detect if we're completing after --
+    local -i dindex=0 i
+    for (( i = 2; i <= $#words; i++ )); do
+        [[ $words[i] == -- ]] && dindex=$i && break
+    done
+    if (( dindex > 0 && CURRENT > dindex )); then
+        if [[ $words[CURRENT] == --* ]]; then
+            _chr_gn_flags
+        elif [[ -n $words[CURRENT] ]]; then
+            _chr_gn_build_args
+        fi
+        return
+    fi
+
+    local curcontext="$curcontext"
+    typeset -A opt_args
+    _arguments -s \
+        '(-l --list-aliases)'{-l,--list-aliases}'[List available build aliases]' \
+        '(-v --verbose)'{-v,--verbose}'[Show builder group/name with -l]' \
+        '(-n --dry-run)'{-n,--dry-run}'[Print commands without executing]' \
+        '(-u --update-compdb)'{-u,--update-compdb}'[Regenerate compile_commands.json]' \
+        '(-o --outdir)'{-o+,--outdir=}'[Override output directory]:outdir:_directories' \
+        '--group=[Builder group]: :_chr_mb_groups' \
+        '--builder=[Builder name]: :_chr_mb_builders' \
+        '*: :_chr_config_aliases'
+}
+
+# ---- main entry point -------------------------------------------------------
+
+_chr() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1: :->subcommand' \
+        '*::argument:->args' && return
+
+    case $state in
+        subcommand)
+            local -a subcmds
+            subcmds=(
+                'bootstrap:Initialize submodules'
+                'env:Print environment setup commands'
+                'config:Configure and generate build files'
+                'build:Build targets'
+                'run:Run a built binary'
+                'help:Show help'
+            )
+            _describe 'subcommand' subcmds
+            ;;
+        args)
+            (( CURRENT-- )); shift words
+            curcontext="${curcontext%:*:*}:chr-${words[1]}:"
+            case $words[1] in
+                env)    _chr_env    ;;
+                config) _chr_config ;;
+            esac
+            ;;
+    esac
+}
+
+_chr "$@"
