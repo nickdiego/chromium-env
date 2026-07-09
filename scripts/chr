@@ -139,8 +139,9 @@ _chr_config() {
     # Alias → "builder_group|builder_name"
     declare -A _aliases=(
         [linux]="tryserver.chromium.linux|linux-rel"
-        [linux-wayland]="chromium.linux|Linux Builder (Wayland)"
         [linux-dbg]="chromium.linux|Linux Builder (dbg)"
+        [android]="tryserver.chromium.android|android-arm64-rel"
+        [android-desktop]="chromium.android.desktop|android-desktop-x64-compile-rel"
         [cros]="tryserver.chromium.chromiumos|linux-chromeos-rel"
     )
 
