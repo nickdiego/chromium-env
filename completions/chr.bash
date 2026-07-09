@@ -45,15 +45,8 @@ _chr_gn_flags() {
 }
 
 _chr_gn_build_args() {
-    local chr=~/projects/chromium
-    local gn="$chr/src/buildtools/linux64/gn"
-    local state="$chr/.chr_state"
-    [[ -x "$gn" && -f "$state" ]] || return
-    local outdir
-    outdir=$(grep -m1 '^CHR_CONFIG_OUTDIR=' "$state" | cut -d= -f2-)
-    [[ -n "$outdir" && -d "$chr/src/$outdir" ]] || return
-    (cd "$chr/src" && "$gn" args "$outdir" --list --short 2>/dev/null) \
-        | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {print $1 "="}'
+    # blocklist applied inside chr config --list-gn-args; strip description field
+    chr config --list-gn-args 2>/dev/null | cut -f1
 }
 
 # ---- main completion --------------------------------------------------------
