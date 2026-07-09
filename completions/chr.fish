@@ -16,7 +16,7 @@ end
 
 # True when -- has been seen in the current chr config invocation
 function __chr_config_after_dashdash
-    contains -- (commandline -opc)
+    contains -- -- (commandline -opc)
 end
 
 # gn gen flags: hardcoded common ones with descriptions + dynamic rest from 'gn help gen'
