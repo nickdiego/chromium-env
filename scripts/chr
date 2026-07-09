@@ -146,7 +146,7 @@ _chr_config() {
 
     local alias_name=''
     local outdir=''
-    local extra_args=''
+    local -a extra_gn_args=()
     local list_aliases=0
     local verbose=0
     local dry_run=0
@@ -158,16 +158,16 @@ _chr_config() {
             -n|--dry-run)      dry_run=1 ;;
             -o)                outdir="$2"; shift ;;
             --outdir=*)        outdir="${1##--outdir=}" ;;
-            --extra-args=*)    extra_args="${1##--extra-args=}" ;;
+            --) shift; extra_gn_args=("$@"); break ;;
             -h|--help)
                 cat >&2 <<'HELP'
-Usage: chr config ALIAS [options]
+Usage: chr config ALIAS [options] [-- GN_ARG...]
 
   -l, --list-aliases       List available build aliases
   -o, --outdir=DIR         Override output directory (default: out/ALIAS)
-  --extra-args=ARGS        Extra gn args appended after mb.py gen
   -n, --dry-run            Print commands without executing
   -v, --verbose            Show builder group/name with --list-aliases
+  -- GN_ARG...             Extra gn args appended to args.gn after mb.py gen
 HELP
                 return 0 ;;
             -*) echo "chr config: unknown option '$1'" >&2; return 1 ;;
@@ -207,11 +207,12 @@ HELP
 
     echo "## chr config: $alias_name -> $resolved_outdir" >&2
     echo "##   builder: $group / $builder" >&2
-    [[ -n "$extra_args" ]] && echo "##   extra args: $extra_args" >&2
+    [[ ${#extra_gn_args[@]} -gt 0 ]] && echo "##   extra gn args: ${extra_gn_args[*]}" >&2
 
     if [[ $dry_run -eq 1 ]]; then
         echo "(cd $srcdir && python3 tools/mb/mb.py gen -m '$group' -b '$builder' '$abs_outdir')" >&2
-        [[ -n "$extra_args" ]] && echo "echo '$extra_args' >> $abs_outdir/args.gn && $gn gen '$abs_outdir'" >&2
+        [[ ${#extra_gn_args[@]} -gt 0 ]] && \
+            echo "printf '%s\n' ${extra_gn_args[*]} >> $abs_outdir/args.gn && $gn gen '$abs_outdir'" >&2
         return 0
     fi
 
@@ -219,12 +220,12 @@ HELP
     local ret=$?
     [[ $ret -ne 0 ]] && { echo "chr config: mb.py gen failed" >&2; return $ret; }
 
-    if [[ -n "$extra_args" ]]; then
-        echo "$extra_args" >> "$abs_outdir/args.gn"
-        echo "## Appended extra args, re-running gn gen..." >&2
+    if [[ ${#extra_gn_args[@]} -gt 0 ]]; then
+        printf '%s\n' "${extra_gn_args[@]}" >> "$abs_outdir/args.gn"
+        echo "## Appended extra gn args, re-running gn gen..." >&2
         ( cd "$srcdir" && "$gn" gen "$abs_outdir" )
         ret=$?
-        [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed after extra-args" >&2; return $ret; }
+        [[ $ret -ne 0 ]] && { echo "chr config: gn gen failed after extra gn args" >&2; return $ret; }
     fi
 
     _chr_save_state \
