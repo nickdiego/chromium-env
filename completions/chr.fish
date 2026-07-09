@@ -69,6 +69,53 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
     -s o -l outdir -r -d 'Override output directory'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -a '(__chr_config_aliases)'
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+    -l group -r -d 'Builder group' -a '(__chr_mb_groups)'
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+    -l builder -r -d 'Builder name' -a '(__chr_mb_builders)'
+
+# All builder groups from gn_args_locations.json
+function __chr_mb_groups
+    set -l f ~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
+    test -f $f; or return
+    python3 -c "
+import json, sys
+for g in sorted(json.load(open(sys.argv[1]))):
+    print(g)
+" $f 2>/dev/null
+end
+
+# Extract the current --group= value from the command line tokens
+function __chr_config_group_value
+    set -l tokens (commandline -opc)
+    set -l n (count $tokens)
+    for i in (seq 1 $n)
+        set -l t $tokens[$i]
+        if test $t = '--group'
+            set -l j (math $i + 1)
+            test $j -le $n; and echo $tokens[$j]
+            return
+        end
+        set -l m (string match -r '^--group=(.+)' -- $t)
+        test (count $m) -ge 2; and echo $m[2]; and return
+    end
+end
+
+# Builders within the currently typed --group value
+function __chr_mb_builders
+    set -l group (__chr_config_group_value)
+    test -n "$group"; or return
+    set -l f ~/projects/chromium/src/infra/config/generated/builders/gn_args_locations.json
+    test -f $f; or return
+    python3 -c "
+import json, sys
+d = json.load(open(sys.argv[1]))
+g = sys.argv[2]
+if g in d:
+    for b in sorted(d[g]):
+        print(b)
+" $f $group 2>/dev/null
+end
 
 # gn build args (key=value) from the last configured outdir in .chr_state
 function __chr_gn_build_args
