@@ -3,8 +3,11 @@
 # Usage: chr <subcommand> [options]
 
 _CHR_SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
 chromiumdir=$(dirname "$_CHR_SCRIPTDIR")
 srcdir="$chromiumdir/src"
+
+# Persistent state, so subcommands share states more smoothly.
 _CHR_STATE_FILE="$chromiumdir/.chr_state"
 
 _chr_load_state() {
@@ -225,10 +228,10 @@ HELP
     fi
 
     _chr_save_state \
-        "CHR_ALIAS=$alias_name" \
-        "CHR_BUILDER_GROUP=$group" \
-        "CHR_BUILDER=$builder" \
-        "CHR_OUTDIR=$resolved_outdir"
+        "CHR_CONFIG_ALIAS=$alias_name" \
+        "CHR_CONFIG_BUILDER_GROUP=$group" \
+        "CHR_CONFIG_BUILDER=$builder" \
+        "CHR_CONFIG_OUTDIR=$resolved_outdir"
 
     echo "## State saved -> $_CHR_STATE_FILE" >&2
 }
