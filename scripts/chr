@@ -31,6 +31,7 @@ Subcommands:
   bootstrap   Initialize submodules and set up for first use
   env         Print environment setup commands for the current shell
   config      Configure and generate build files
+  sync        Fetch latest main, rebase a branch stack, and build
   build       Build targets (coming soon)
   run         Run a built binary (coming soon)
 
@@ -38,12 +39,13 @@ Options:
   -h, --help  Show this help
 
 Examples (fish):
-  chr env | source           # set up environment variables
-  chr config linux-wayland   # configure for linux wayland build
-  chr build                  # build chrome (uses last config)
+  chr env | source                              # set up environment variables
+  chr config linux-wayland                      # configure for linux wayland build
+  chr sync chromod/chrome-test-base-{0..3}      # sync + rebase + build
 
 Examples (bash/zsh):
-  eval "$(chr env --bash)"   # set up environment variables
+  eval "$(chr env --bash)"                      # set up environment variables
+  chr sync chromod/my-branch-{0..2} --no-build  # sync + rebase only
 EOF
 }
 
@@ -354,6 +356,112 @@ _chr_run() {
     return 1
 }
 
+_chr_sync() {
+    local log_dir="$chromiumdir/logs"
+    local do_build=1
+    local -a branches=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --log-dir=*)  log_dir="${1##--log-dir=}" ;;
+            --log-dir)    log_dir="$2"; shift ;;
+            --no-build)   do_build=0 ;;
+            --build)      do_build=1 ;;
+            -h|--help)
+                cat >&2 <<'HELP'
+Usage: chr sync BRANCH... [options]
+
+  Refresh local main from origin/main, run gclient sync, then rebase each
+  BRANCH onto its predecessor (the first branch rebases onto main).
+  Optionally builds chrome + tests for all out/ directories that exist.
+
+  BRANCH...         Stack branches in order, bottom to top.
+  --no-build        Skip builds after rebasing.
+  --log-dir=DIR     Log directory (default: ~/projects/chromium/tmp/logs).
+
+  Log: <log-dir>/fetch-rebase-build-YYYY-MM-DD.log
+
+  Build targets used:
+    out/linux, out/cros              -> chrome browser_tests
+    out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
+
+  On conflict: resolve manually (git add + git rebase --continue),
+  then re-run: chr sync BRANCH...
+
+  Example:
+    chr sync chromod/chrome-test-base-{0..3}
+HELP
+                return 0 ;;
+            -*) echo "chr sync: unknown option '$1'" >&2; return 1 ;;
+            *)  branches+=("$1") ;;
+        esac
+        shift
+    done
+
+    if [[ ${#branches[@]} -eq 0 ]]; then
+        echo "chr sync: no branches specified. Run 'chr sync --help'." >&2
+        return 1
+    fi
+
+    mkdir -p "$log_dir"
+    local log="$log_dir/fetch-rebase-build-$(date +'%Y-%m-%d').log"
+
+    (
+        set -e
+
+        echo "### chr sync: $(date)"
+        echo "### Stack: ${branches[*]}"
+
+        # Refresh local main
+        echo "### Refreshing main from origin..."
+        [[ "$(git -C "$srcdir" branch --show-current)" == "main" ]] && \
+            git -C "$srcdir" checkout "${branches[-1]}" -q
+        git -C "$srcdir" branch -D main 2>/dev/null || true
+        git -C "$srcdir" fetch origin main
+        git -C "$srcdir" checkout FETCH_HEAD -b main
+        echo "### main -> $(git -C "$srcdir" rev-parse --short HEAD)"
+
+        # Sync dependencies
+        echo "### gclient sync -D..."
+        (cd "$chromiumdir" && gclient sync -D)
+
+        # Rebase stack
+        parent="main"
+        for branch in "${branches[@]}"; do
+            echo "### Rebasing $branch onto $parent..."
+            git -C "$srcdir" checkout "$branch" -q
+            git -C "$srcdir" rebase "$parent" || {
+                echo "### Conflict on $branch. Resolve then re-run:"
+                echo "###   git add <files> && git rebase --continue"
+                echo "###   chr sync ${branches[*]}"
+                exit 1
+            }
+            echo "### $branch -> $(git -C "$srcdir" rev-parse --short HEAD)"
+            parent="$branch"
+        done
+        git -C "$srcdir" checkout "${branches[-1]}" -q
+
+        # Build
+        if (( do_build )); then
+            echo "### Building..."
+            for dir in linux cros; do
+                [[ -d "$srcdir/out/$dir" ]] || continue
+                echo "### out/$dir: chrome browser_tests"
+                autoninja --quiet -C "$srcdir/out/$dir" chrome browser_tests
+            done
+            for dir in android android-desktop; do
+                [[ -d "$srcdir/out/$dir" ]] || continue
+                echo "### out/$dir: chrome_public_apk chrome_public_test_apk"
+                autoninja --quiet -C "$srcdir/out/$dir" chrome_public_apk chrome_public_test_apk
+            done
+        fi
+
+        echo "### Done: $(date)"
+
+    ) 2>&1 | tee "$log"
+    return ${PIPESTATUS[0]}
+}
+
 # --- main dispatch ---
 cmd="${1:-help}"
 shift 2>/dev/null
@@ -362,6 +470,7 @@ case "$cmd" in
     bootstrap)   _chr_bootstrap "$@" ;;
     env)         _chr_env       "$@" ;;
     config)      _chr_config    "$@" ;;
+    sync)        _chr_sync      "$@" ;;
     build)       _chr_build     "$@" ;;
     run)         _chr_run       "$@" ;;
     help|-h|--help) _chr_help ;;
