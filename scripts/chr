@@ -382,7 +382,7 @@ Usage: chr sync BRANCH... [options]
   Log: <log-dir>/fetch-rebase-build-YYYY-MM-DD.log
 
   Build targets used:
-    out/linux, out/cros              -> chrome browser_tests
+    out/linux, out/cros              -> chrome browser_tests interactive_ui_tests
     out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
 
   On conflict: resolve manually (git add + git rebase --continue),
@@ -442,17 +442,16 @@ HELP
         git -C "$srcdir" checkout "${branches[-1]}" -q
 
         # Build
+        local linux_targets=(chrome browser_tests interactive_ui_tests)
+        local android_targets=(chrome_public_apk chrome_public_test_apk)
+        local targets=( "${linux_targets[@]}" )
         if (( do_build )); then
             echo "### Building..."
-            for dir in linux cros; do
+            for dir in linux cros android android android-desktop; do
                 [[ -d "$srcdir/out/$dir" ]] || continue
-                echo "### out/$dir: chrome browser_tests"
-                autoninja --quiet -C "$srcdir/out/$dir" chrome browser_tests
-            done
-            for dir in android android-desktop; do
-                [[ -d "$srcdir/out/$dir" ]] || continue
-                echo "### out/$dir: chrome_public_apk chrome_public_test_apk"
-                autoninja --quiet -C "$srcdir/out/$dir" chrome_public_apk chrome_public_test_apk
+                [[ "$dir" =~ ^android ]] && targets=( "${android_targets[@]}" )
+                echo "### out/$dir: ${targets[*]}"
+                autoninja --quiet -C "$srcdir/out/$dir" "${targets[@]}"
             done
         fi
 
