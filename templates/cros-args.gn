@@ -1,0 +1,19 @@
+proprietary_codecs = true
+ffmpeg_branding = "Chrome"
+target_os = "chromeos"
+use_xkbcommon = true
+use_system_minigbm = false
+use_intel_minigbm = true
+use_remoteexec = true
+reclient_cfg_dir = "../../buildtools/reclient_cfgs/linux"
+is_component_build = true
+use_siso = true
+is_debug = false
+blink_symbol_level = 0
+symbol_level = 1
+dcheck_always_on = true
+dcheck_is_configurable = false
+google_api_key = "AIzaSyABuAyOpxsQwO-WQnl0EEw1MfPa0PqKu_Q"
+google_default_client_secret = "ZKS1Q_Cr299Njcx9Fhf31-Lq"
+google_default_client_id =
+    "1022116019385-bqoqgdna5mop9jr26kasholj3i2bdamk.apps.googleusercontent.com"
