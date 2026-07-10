@@ -197,9 +197,7 @@ HELP
     done
 
     # gn build args that are noisy or irrelevant for interactive use
-    local -a gn_args_blocklist=(
-        coverage_instrumentation_input_file
-    )
+    local -a gn_args_blocklist=( coverage_instrumentation_input_file use_clang_coverage )
     local block_pat; block_pat="^($(IFS='|'; echo "${gn_args_blocklist[*]}"))[[:space:]]*="
 
     if (( list_gn_args )); then
