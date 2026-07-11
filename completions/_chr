@@ -1,4 +1,7 @@
 #compdef chr
+# Copyright 2026 Igalia S.L.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 # Zsh completions for chr — chromium development helper
 #
 # Activate: add to ~/.zshrc before compinit —

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2026 Igalia S.L.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 # ex: ts=4 sw=4 et filetype=sh
 #
 # chr - Chromium development helper
@@ -20,9 +23,9 @@ chr_load_state() {
 
 chr_save_state() {
     local file="$_CHR_STATE_FILE"
-    true > "$file"
+    true >"$file"
     for pair in "$@"; do
-        echo "$pair" >> "$file"
+        echo "$pair" >>"$file"
     done
 }
 
@@ -58,18 +61,18 @@ chr_env() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --bash|--sh) format='bash' ;;
-            --icecc)     include_icecc=1 ;;
-            -h|--help)
-                echo "Usage: chr env [--bash|--sh] [--icecc]" >&2
-                echo "" >&2
-                echo "  --bash, --sh  Print bash/sh-compatible export commands" >&2
-                echo "  --icecc       Include icecc-related variables" >&2
-                echo "" >&2
-                echo "Fish usage:     chr env | source" >&2
-                echo "Bash/zsh usage: eval \"\$(chr env --bash)\"" >&2
-                return 0
-                ;;
+        --bash | --sh) format='bash' ;;
+        --icecc) include_icecc=1 ;;
+        -h | --help)
+            echo "Usage: chr env [--bash|--sh] [--icecc]" >&2
+            echo "" >&2
+            echo "  --bash, --sh  Print bash/sh-compatible export commands" >&2
+            echo "  --icecc       Include icecc-related variables" >&2
+            echo "" >&2
+            echo "Fish usage:     chr env | source" >&2
+            echo "Bash/zsh usage: eval \"\$(chr env --bash)\"" >&2
+            return 0
+            ;;
         esac
         shift
     done
@@ -113,12 +116,12 @@ chr_env() {
     emit_path_prepend "$SRCDIR/third_party/llvm-build/Release+Asserts/bin"
 
     # ICECC (distributed compilation, optional)
-    if (( include_icecc )); then
+    if ((include_icecc)); then
         local icecc_install="${ICECC_INSTALL_DIR:-/usr/lib/icecream}"
-        emit_var ICECC_DATA_DIR    "$CHROMIUMDIR/icecc"
+        emit_var ICECC_DATA_DIR "$CHROMIUMDIR/icecc"
         emit_var ICECC_INSTALL_DIR "$icecc_install"
-        emit_var ICECC_CREATEENV   "${ICECC_CREATEENV:-$icecc_install/bin/icecc-create-env}"
-        emit_var ICECC_CCWRAPPER   "${ICECC_CCWRAPPER:-$icecc_install/libexec/icecc/compilerwrapper}"
+        emit_var ICECC_CREATEENV "${ICECC_CREATEENV:-$icecc_install/bin/icecc-create-env}"
+        emit_var ICECC_CCWRAPPER "${ICECC_CCWRAPPER:-$icecc_install/libexec/icecc/compilerwrapper}"
     fi
 }
 
@@ -142,11 +145,11 @@ chr_bootstrap() {
 chr_config() {
     # Alias → "builder_group|builder_name"
     declare -A aliases=(
-        [linux]="tryserver.chromium.linux|linux-rel"
-        [linux-dbg]="chromium.linux|Linux Builder (dbg)"
-        [android]="tryserver.chromium.android|android-arm64-rel"
-        [android-desktop]="chromium.android.desktop|android-desktop-x64-compile-rel"
-        [cros]="tryserver.chromium.chromiumos|linux-chromeos-rel"
+        ["linux"]="tryserver.chromium.linux|linux-rel"
+        ["linux-dbg"]="chromium.linux|Linux Builder (dbg)"
+        ["android"]="tryserver.chromium.android|android-arm64-rel"
+        ["android-desktop"]="chromium.android.desktop|android-desktop-x64-compile-rel"
+        ["cros"]="tryserver.chromium.chromiumos|linux-chromeos-rel"
     )
 
     local alias_name=''
@@ -161,17 +164,24 @@ chr_config() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -l|--list-aliases)  list_aliases=1 ;;
-            --list-gn-args)     list_gn_args=1 ;;
-            -v|--verbose)       be_verbose=1 ;;
-            -u|--update-compdb) update_compdb=1 ;;
-            -o)                 outdir="$2"; shift ;;
-            --outdir=*)         outdir="${1##--outdir=}" ;;
-            --group=*)          explicit_group="${1##--group=}" ;;
-            --builder=*)        explicit_builder="${1##--builder=}" ;;
-            --) shift; extra_gn_args=("$@"); break ;;
-            -h|--help)
-                cat >&2 <<'HELP'
+        -l | --list-aliases) list_aliases=1 ;;
+        --list-gn-args) list_gn_args=1 ;;
+        -v | --verbose) be_verbose=1 ;;
+        -u | --update-compdb) update_compdb=1 ;;
+        -o)
+            outdir="$2"
+            shift
+            ;;
+        --outdir=*) outdir="${1##--outdir=}" ;;
+        --group=*) explicit_group="${1##--group=}" ;;
+        --builder=*) explicit_builder="${1##--builder=}" ;;
+        --)
+            shift
+            extra_gn_args=("$@")
+            break
+            ;;
+        -h | --help)
+            cat >&2 <<'HELP'
 Usage: chr config ALIAS [options] [-- GN_ARG...]
    or: chr config --group=GROUP --builder=BUILDER [options] [-- GN_ARG...]
 
@@ -179,7 +189,6 @@ Usage: chr config ALIAS [options] [-- GN_ARG...]
   --group=GROUP            Builder group (alternative to ALIAS)
   --builder=BUILDER        Builder name (alternative to ALIAS; requires --group)
   -o, --outdir=DIR         Override output directory
-  -n, --dry-run            Print commands without executing
   -u, --update-compdb      Regenerate compile_commands.json and update symlink
   -v, --verbose            Show builder group/name with --list-aliases
   -- GN_ARG...             Extra gn args/options passed to gn gen. NOTE: These
@@ -190,30 +199,38 @@ Usage: chr config ALIAS [options] [-- GN_ARG...]
     chr config linux -- is_debug=true is_component_build=true
     chr config --group=tryserver.chromium.android --builder=android-x64-rel -- --check
 HELP
-                return 0 ;;
-            -*) echo "chr config: unknown option '$1'" >&2; return 1 ;;
-            *)  alias_name="$1" ;;
+            return 0
+            ;;
+        -*)
+            echo "chr config: unknown option '$1'" >&2
+            return 1
+            ;;
+        *) alias_name="$1" ;;
         esac
         shift
     done
 
     # gn build args that are noisy or irrelevant for interactive use
-    local -a gn_args_blocklist=( coverage_instrumentation_input_file use_clang_coverage )
-    local block_pat; block_pat="^($(IFS='|'; echo "${gn_args_blocklist[*]}"))[[:space:]]*="
+    local -a gn_args_blocklist=(coverage_instrumentation_input_file use_clang_coverage)
+    local block_pat
+    block_pat="^($(
+        IFS='|'
+        echo "${gn_args_blocklist[*]}"
+    ))[[:space:]]*="
 
-    if (( list_gn_args )); then
+    if ((list_gn_args)); then
         chr_load_state
         local gn="$SRCDIR/buildtools/linux64/gn"
         [[ -x "$gn" && -n "${CHR_CONFIG_OUTDIR:-}" && -d "$SRCDIR/$CHR_CONFIG_OUTDIR" ]] || return 1
-        (cd "$SRCDIR" && "$gn" args "$CHR_CONFIG_OUTDIR" --list --short 2>/dev/null) \
-            | awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}' \
-            | grep -vE "$block_pat"
+        (cd "$SRCDIR" && "$gn" args "$CHR_CONFIG_OUTDIR" --list --short 2>/dev/null) |
+            awk -F' = ' '/^[a-zA-Z_]/ && NF>=2 {printf "%s=\t%s\n", $1, $2}' |
+            grep -vE "$block_pat"
         return 0
     fi
 
-    if (( list_aliases )); then
+    if ((list_aliases)); then
         for key in "${!aliases[@]}"; do
-            if (( be_verbose )); then
+            if ((be_verbose)); then
                 local val="${aliases[$key]}"
                 printf "%-16s  %s / %s\n" "$key" "${val%%|*}" "${val##*|}"
             else
@@ -272,42 +289,45 @@ HELP
     done
 
     # --update-compdb: inject --export-compile-commands into gn gen
-    (( update_compdb )) && gn_opts+=("--export-compile-commands")
+    ((update_compdb)) && gn_opts+=("--export-compile-commands")
 
     local label="${alias_name:-${explicit_group}/${explicit_builder}}"
     echo "### chr config: $label -> $resolved_outdir" >&2
     echo "###   builder: $group / $builder" >&2
     [[ ${#gn_build_args[@]} -gt 0 ]] && echo "###   extra gn args: ${gn_build_args[*]}" >&2
-    [[ ${#gn_opts[@]} -gt 0 ]]      && echo "###   extra gn opts: ${gn_opts[*]}" >&2
+    [[ ${#gn_opts[@]} -gt 0 ]] && echo "###   extra gn opts: ${gn_opts[*]}" >&2
 
     # Prepend a generation header and strip blocklisted args into a tmpfile first,
     # then announce and atomically replace args.gn.
     local tmpfile
-    tmpfile=$(mktemp) || { echo "chr config: mktemp failed" >&2; return 1; }
+    tmpfile=$(mktemp) || {
+        echo "chr config: mktemp failed" >&2
+        return 1
+    }
     {
         printf '# Generated by: chr %s\n' "$ORIGINAL_CMDLINE"
         printf '# Group/Builder: %s - %s\n\n' "$group" "$builder"
-    } > "$tmpfile"
+    } >"$tmpfile"
 
     # Lookup GN args using Chromium's mb (meta-build?) tool, filtering out args in
     # blocklisted args. E.g: coverage_instrumentation_input_file, which causes
     # errors as coverage file do not exit unless in official build servers.
-    ( cd "$SRCDIR" && \
-        python3 tools/mb/mb.py lookup --quiet -m "$group" -b "$builder" \
-            | grep -vE "$block_pat" >> "$tmpfile" ) 2>/dev/null \
-              || { echo "chr config: mb.py gen failed" >&2; }
+    (cd "$SRCDIR" &&
+        python3 tools/mb/mb.py lookup --quiet -m "$group" -b "$builder" |
+        grep -vE "$block_pat" >>"$tmpfile") 2>/dev/null ||
+        { echo "chr config: mb.py gen failed" >&2; }
     # Command-line GN args go last, so take precedence over build args
     # coming from MB configuration files.
-    printf "%s\n" "${gn_build_args[@]}" >> "$tmpfile"
+    printf "%s\n" "${gn_build_args[@]}" >>"$tmpfile"
 
     echo "### Writing GN args to ${abs_outdir}/args.gn" >&2
     mkdir -p "$abs_outdir"
     mv "$tmpfile" "$abs_outdir/args.gn"
 
     echo "### Running gn gen..." >&2
-    ( cd "$SRCDIR" && "$gn" gen "${gn_opts[@]}" "$abs_outdir" ) || return $?
+    (cd "$SRCDIR" && "$gn" gen "${gn_opts[@]}" "$abs_outdir") || return $?
 
-    if (( update_compdb )); then
+    if ((update_compdb)); then
         local compdb_src="$abs_outdir/compile_commands.json"
         local compdb_link="$SRCDIR/compile_commands.json"
         if [[ -f "$compdb_src" ]]; then
@@ -347,12 +367,15 @@ chr_sync() {
     log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --log-dir=*)  log_dir="${1##--log-dir=}" ;;
-            --log-dir)    log_dir="$2"; shift ;;
-            --no-build)   do_build=0 ;;
-            --build)      do_build=1 ;;
-            -h|--help)
-                cat >&2 <<'HELP'
+        --log-dir=*) log_dir="${1##--log-dir=}" ;;
+        --log-dir)
+            log_dir="$2"
+            shift
+            ;;
+        --no-build) do_build=0 ;;
+        --build) do_build=1 ;;
+        -h | --help)
+            cat >&2 <<'HELP'
 Usage: chr sync BRANCH... [options]
 
   Refresh local main from origin/main, run gclient sync, then rebase each
@@ -375,9 +398,13 @@ Usage: chr sync BRANCH... [options]
   Example:
     chr sync chromod/chrome-test-base-{0..3}
 HELP
-                return 0 ;;
-            -*) echo "chr sync: unknown option '$1'" >&2; return 1 ;;
-            *)  branches+=("$1") ;;
+            return 0
+            ;;
+        -*)
+            echo "chr sync: unknown option '$1'" >&2
+            return 1
+            ;;
+        *) branches+=("$1") ;;
         esac
         shift
     done
@@ -397,7 +424,7 @@ HELP
 
         # Refresh local main
         echo "### Refreshing main from origin..."
-        [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] && \
+        [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
             git -C "$SRCDIR" checkout "${branches[-1]}" -q
         git -C "$SRCDIR" branch -D main 2>/dev/null || true
         git -C "$SRCDIR" fetch origin main
@@ -427,12 +454,12 @@ HELP
         # Build
         local linux_targets=(chrome browser_tests interactive_ui_tests)
         local android_targets=(chrome_public_apk chrome_public_test_apk)
-        local targets=( "${linux_targets[@]}" )
-        if (( do_build )); then
+        local targets=("${linux_targets[@]}")
+        if ((do_build)); then
             echo "### Building..."
             for dir in linux cros android android android-desktop; do
                 [[ -d "$SRCDIR/out/$dir" ]] || continue
-                [[ "$dir" =~ ^android ]] && targets=( "${android_targets[@]}" )
+                [[ "$dir" =~ ^android ]] && targets=("${android_targets[@]}")
                 echo "### out/$dir: ${targets[*]}"
                 autoninja --quiet -C "$SRCDIR/out/$dir" "${targets[@]}"
             done
@@ -449,12 +476,15 @@ CMD="${1:-help}"
 shift 2>/dev/null
 
 case "$CMD" in
-    bootstrap)   chr_bootstrap "$@" ;;
-    env)         chr_env       "$@" ;;
-    config)      chr_config    "$@" ;;
-    sync)        chr_sync      "$@" ;;
-    build)       chr_build     "$@" ;;
-    run)         chr_run       "$@" ;;
-    help|-h|--help) chr_help ;;
-    *) echo "chr: unknown subcommand '$CMD'. Run 'chr help' for usage." >&2; exit 1 ;;
+bootstrap) chr_bootstrap "$@" ;;
+env) chr_env "$@" ;;
+config) chr_config "$@" ;;
+sync) chr_sync "$@" ;;
+build) chr_build "$@" ;;
+run) chr_run "$@" ;;
+help | -h | --help) chr_help ;;
+*)
+    echo "chr: unknown subcommand '$CMD'. Run 'chr help' for usage." >&2
+    exit 1
+    ;;
 esac

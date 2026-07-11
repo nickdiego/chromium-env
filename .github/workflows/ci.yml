@@ -1,0 +1,19 @@
+# Copyright 2026 Igalia S.L.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: shellcheck scripts/chr
