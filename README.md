@@ -1,114 +1,116 @@
-### My chromium development env
+### chromium-env
 
-Intended to be used as root/container directory for chromium development files
-(source files, tools, configuration and other kind of files involved), this repo
-provides a set of shell helper functions/scripts to speedup bootstrap, setting up,
-building and running chrome and other chromium artifacts/tools.
+Container directory for Chromium development work: source tree, build configuration,
+tools, logs. This is my daily driver for chromium devel, it contains shell helpers to
+speed up the workflow (bootstrapping, env setup, build configuration, syncing/rebasing
+branch stacks).
 
-*Tested only on Arch Linux with recent versions of bash and zsh*
+#### `scripts/chr` — where things are headed
 
-A common setup would be cloning it in `$HOME`, for example. After installing the
-[system dependencies]( https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/linux/build_instructions.md#Install-additional-build-dependencies)
-required, run the following to bootstrap the env:
+The active development is on `scripts/chr`, a standalone script meant to replace the
+old `env.sh` shell functions. The motivation is mostly ergonomics: a proper subcommand
+interface, consistent flag style, strong tab completion across bash/fish/zsh, and
+behavior that's easy to audit and extend without sourcing a pile of functions into your
+shell.
 
-```sh
-source env.sh && chr_bootstrap
-```
-This will run some sanity checks, download `depot_tools`, configure right python
-interpreter (if needed) and set some env variables, needed for the next steps.
+`env.sh` still works but is legacy at this point. New features go into `chr`.
 
-*From now on, we assume you're in a shell with `env.sh` sourced.*
+*Tested on Arch Linux with bash 5+, zsh and fish 4.8.*
 
-#### Syncing the source files
+---
 
-Fetching chromium sources at `<path/to/this/repo>/src`.
+#### Getting started
 
-```sh
-gclient sync
-```
-#### Distributed builds with Goma
-
-Nowadays, [Goma](https://chromium.googlesource.com/infra/goma/client/)
-is used for running distributed builds of Chromium. It relies on
-Google's cloud-based build cluster infrastructure to provide a
-distributed cache mechanism and massively parallelize the compilation
-process, dramatically reducing build times (e.g: clean builds < 30min).
-
-*Unfortunately, for now, it's not publicly available, rather is limited
-to early access users :(*
-
-By default, goma is enabled in Chromium builds configured using chr\_\*
-helper scritps, which should work out-of-the-box. To disable it, pass in
-`--no-goma` to `chr_set_config`/`chr_config`.
-
-#### Distributed builds with Icecc
-
-After [install and configure icecc in you host system](
-https://github.com/icecc/icecream/blob/master/README.md#installation), export
-the following variables (in your `bashrc`, for example):
-
-*This step is necessary because `icecc` install dir, paths, etc differ in linux
-distros. The default versions in `env.sh` are meant to work in Arch Linux (with
-`icecream` AUR package installed).*
+Clone into `$HOME` (or wherever makes sense), install the
+[system dependencies](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/linux/build_instructions.md#Install-additional-build-dependencies),
+then run:
 
 ```sh
-export ICECC_INSTALL_DIR=/usr/lib/icecc
-export ICECC_CREATEENV="$ICECC_INSTALL_DIR/bin
+chr bootstrap
 ```
 
-Then generate the icecc bundle for current source repo:
+This initializes submodules and gets the environment ready for first use.
+
+#### Environment setup
+
+`chr env` prints shell-native export commands for `PATH`, `CHROMIUM_OUTPUT_DIR`, and
+a few other variables the tooling expects. Source it on shell startup:
 
 ```sh
-chr_icecc_setup -u
+# fish
+chr env | source
+
+# bash/zsh
+eval "$(chr env --bash)"
 ```
 
-This will output a `<path/to/this/repo>/icecc/icecc_clang.tgz` file, add `icecc`
-bin paths to system `$PATH` var and export some necessary env variables, such as:
+Append to your shell's rc file so it runs automatically. Pass `--icecc` if you use
+[icecream](https://github.com/icecc/icecream) for distributed builds. Note: icecc
+support is currently incomplete, only env variables are set for now.
 
-*`icecc` support was implemented based on previous work done by [Gyoyoung Kim's work](
-https://github.com/Gyuyoung/ChromiumBuild) described [here](
-https://blogs.igalia.com/gyuyoung/2018/01/11/share-my-experience-to-build-chromium-with-icecc/)*
+#### Build configuration
 
-#### Configuring (generating `build.ninja` file)_
-
-As these scripts have been written with Igalia's Ozone/Wayland development
-in mind, they assume you might need to maintain downstream and upstream builds
-in separate locations, so that they can be maintained simultaneosly, saving some
-time when switching over them.
-
-So, supposing you're working on upstream features (eg: origin/main) and wants
-to build `chrome` with Ozone backends enabled, run:
+`chr config` configures a build using Chromium's `mb` infrastructure. You give it a
+short alias and it figures out the builder group, GN args, and output directory:
 
 ```sh
-chr_config --variant=ozone --type=release
+chr config linux-wayland         # linux/ozone/wayland release build
+chr config linux-dbg             # debug build
+chr config linux-wayland -u      # reconfigure + regenerate compile_commands.json
 ```
-This will generate build directory at `<path/to/this/repo>/src/out/release/ozone`.
 
-#### Building
-
-To build chrome or pass additional paramaters (e.g: number of jobs, etc), run:
+List what's available:
 
 ```sh
-chr_build -j200 chrome
+chr config -l          # aliases only
+chr config -l -v       # show builder group and name too
 ```
 
-#### Running `chrome`
-
-Simple like that:
+You can also override individual GN args after `--`:
 
 ```sh
-chr_run
+chr config linux-wayland -- is_debug=true symbol_level=1
 ```
 
-Additional parameter are supported, for example:
+#### Syncing and rebasing
+
+`chr sync` is the main daily-driver command. It fetches latest `main`, runs
+`gclient sync`, rebases your branch stack, and triggers a build. The stack is
+auto-detected — just name the top branch (or nothing, to use the current one):
 
 ```sh
-chr_run --user-data-dir=/tmp/x --in-process-gpu
+chr sync                                   # current branch is the top of the stack
+chr sync chromod/my-branch-3               # explicit top
+chr sync chromod/my-branch-3 --no-build    # skip build step
 ```
 
-### Focus/Scope
+The full stack (all local branches between `origin/main` and the named tip) is walked
+automatically, so you don't have to list every layer.
 
-Conceived and mainly intended to be used for Igalia's Ozone/Wayland/X11 development
-workflow. Even though it should be useful for general chromium devel, some features
-such as bash/zsh completion support only ozone/wayland/linux specific bits.
+If you're on `main` or in detached HEAD state and don't specify a branch, it just
+does the fetch + `gclient sync` + build without touching any branch stack.
 
+On conflict, resolve it manually (`git add` + `git rebase --continue`) then re-run
+`chr sync` with the same arguments — it will pick up where it left off.
+
+#### Shell completion
+
+Completions for bash, fish, and zsh live in `completions/`. They're dynamic: aliases,
+GN args, branch names, and flags are all pulled from live data at completion time.
+
+```sh
+# fish — add to ~/.config/fish/config.fish
+source ~/projects/chromium/completions/chr.fish
+
+# bash — add to ~/.bashrc
+source ~/projects/chromium/completions/chr.bash
+
+# zsh — add to ~/.zshrc (before compinit)
+fpath=(~/projects/chromium/completions $fpath)
+```
+
+#### Work in progress
+
+`chr build` and `chr run` are stubbed out but not yet implemented — those will cover
+building arbitrary targets and launching Chrome with the right environment variables,
+replacing `chr_build`/`chr_run` from `env.sh`.
