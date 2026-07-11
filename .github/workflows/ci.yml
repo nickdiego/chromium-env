@@ -17,3 +17,8 @@ jobs:
 
       - name: shellcheck
         run: shellcheck scripts/chr
+
+      - name: shfmt
+        run: |
+          sudo apt-get install -y shfmt
+          shfmt --diff scripts/chr completions/chr.bash

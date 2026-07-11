@@ -114,3 +114,15 @@ fpath=(~/projects/chromium/completions $fpath)
 `chr build` and `chr run` are stubbed out but not yet implemented — those will cover
 building arbitrary targets and launching Chrome with the right environment variables,
 replacing `chr_build`/`chr_run` from `env.sh`.
+
+#### Contributing
+
+Changes to `scripts/chr` and `completions/chr.bash` need to pass two checks:
+
+- **[shellcheck](https://www.shellcheck.net/)** — static analysis, run as `shellcheck scripts/chr`
+- **[shfmt](https://github.com/mvdan/sh)** — formatting, run as `shfmt --diff scripts/chr completions/chr.bash`
+  (settings are picked up automatically from `.editorconfig`)
+
+Both run in CI on every push and pull request. There's also a local pre-commit hook
+in `.git/hooks/pre-commit` that runs shfmt on staged files — set it up once after
+cloning and you'll catch formatting issues before they hit CI.
