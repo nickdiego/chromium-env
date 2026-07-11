@@ -416,28 +416,34 @@ HELP
         shift
     done
 
-    # Default to current branch in src/
+    # Default to current branch in src/; on main/detached HEAD, skip rebase
+    local skip_rebase=0
     if [[ -z "$top_branch" ]]; then
         top_branch=$(git -C "$SRCDIR" branch --show-current 2>/dev/null)
         if [[ -z "$top_branch" || "$top_branch" == "main" ]]; then
-            echo "chr sync: not on a feature branch. Specify a branch or check one out first." >&2
-            return 1
+            skip_rebase=1
         fi
     fi
 
     # Detect the stack: local branches on commits between origin/main and top_branch
     local -a branches=()
-    local commit branch
-    while IFS= read -r commit; do
-        branch=$(git -C "$SRCDIR" branch --points-at "$commit" \
-            --format='%(refname:short)' 2>/dev/null | head -1)
-        [[ -n "$branch" ]] && branches+=("$branch")
-    done < <(git -C "$SRCDIR" log --reverse --format="%H" \
-        "origin/main..${top_branch}" 2>/dev/null)
+    if ! ((skip_rebase)); then
+        if ! git -C "$SRCDIR" merge-base origin/main "$top_branch" &>/dev/null; then
+            echo "chr sync: $top_branch does not share history with origin/main." >&2
+            return 1
+        fi
+        local commit branch
+        while IFS= read -r commit; do
+            branch=$(git -C "$SRCDIR" branch --points-at "$commit" \
+                --format='%(refname:short)' 2>/dev/null | head -1)
+            [[ -n "$branch" ]] && branches+=("$branch")
+        done < <(git -C "$SRCDIR" log --reverse --format="%H" \
+            "origin/main..${top_branch}" 2>/dev/null)
 
-    if [[ ${#branches[@]} -eq 0 ]]; then
-        echo "chr sync: $top_branch has no commits on top of origin/main." >&2
-        return 1
+        if [[ ${#branches[@]} -eq 0 ]]; then
+            echo "chr sync: $top_branch has no commits on top of origin/main." >&2
+            return 1
+        fi
     fi
 
     mkdir -p "$log_dir"
@@ -446,12 +452,17 @@ HELP
         set -e
 
         echo "### chr sync: $(date)"
-        echo "### Stack: ${branches[*]}"
+        ((skip_rebase)) || echo "### Stack: ${branches[*]}"
 
         # Refresh local main
         echo "### Refreshing main from origin..."
-        [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
-            git -C "$SRCDIR" checkout "${branches[-1]}" -q
+        if ((skip_rebase)); then
+            [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
+                git -C "$SRCDIR" checkout --detach -q
+        else
+            [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
+                git -C "$SRCDIR" checkout "${branches[-1]}" -q
+        fi
         git -C "$SRCDIR" branch -D main 2>/dev/null || true
         git -C "$SRCDIR" fetch origin main
         git -C "$SRCDIR" checkout FETCH_HEAD -b main
@@ -462,20 +473,24 @@ HELP
         (cd "$CHROMIUMDIR" && gclient sync -D)
 
         # Rebase stack
-        parent="main"
-        for branch in "${branches[@]}"; do
-            echo "### Rebasing $branch onto $parent..."
-            git -C "$SRCDIR" checkout "$branch" -q
-            git -C "$SRCDIR" rebase "$parent" || {
-                echo "### Conflict on $branch. Resolve then re-run:"
-                echo "###   git add <files> && git rebase --continue"
-                echo "###   chr sync ${top_branch}"
-                exit 1
-            }
-            echo "### $branch -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
-            parent="$branch"
-        done
-        git -C "$SRCDIR" checkout "${branches[-1]}" -q
+        if ! ((skip_rebase)); then
+            parent="main"
+            for branch in "${branches[@]}"; do
+                echo "### Rebasing $branch onto $parent..."
+                git -C "$SRCDIR" checkout "$branch" -q
+                git -C "$SRCDIR" rebase "$parent" || {
+                    echo "### Conflict on $branch. Resolve then re-run:"
+                    echo "###   git add <files> && git rebase --continue"
+                    echo "###   chr sync ${top_branch}"
+                    exit 1
+                }
+                echo "### $branch -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
+                parent="$branch"
+            done
+            git -C "$SRCDIR" checkout "${branches[-1]}" -q
+        else
+            git -C "$SRCDIR" checkout main -q
+        fi
 
         # Build
         local linux_targets=(chrome browser_tests interactive_ui_tests)
