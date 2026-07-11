@@ -75,20 +75,21 @@ chr config linux-wayland -- is_debug=true symbol_level=1
 #### Syncing and rebasing
 
 `chr sync` is the main daily-driver command. It fetches latest `main`, runs
-`gclient sync`, rebases your branch stack, and triggers a build. The stack is
-auto-detected — just name the top branch (or nothing, to use the current one):
+`gclient sync`, and rebases your branch stack. Build is skipped by default —
+pass `--build` to trigger it after rebasing. The stack is auto-detected — just
+name the top branch (or nothing, to use the current one):
 
 ```sh
-chr sync                                   # current branch is the top of the stack
-chr sync chromod/my-branch-3               # explicit top
-chr sync chromod/my-branch-3 --no-build    # skip build step
+chr sync                                # current branch is the top of the stack
+chr sync chromod/my-branch-3           # explicit top
+chr sync chromod/my-branch-3 --build   # rebase + build
 ```
 
 The full stack (all local branches between `origin/main` and the named tip) is walked
 automatically, so you don't have to list every layer.
 
 If you're on `main` or in detached HEAD state and don't specify a branch, it just
-does the fetch + `gclient sync` + build without touching any branch stack.
+does the fetch + `gclient sync` without touching any branch stack.
 
 On conflict, resolve it manually (`git add` + `git rebase --continue`) then re-run
 `chr sync` with the same arguments — it will pick up where it left off.

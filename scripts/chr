@@ -360,7 +360,7 @@ chr_run() {
 }
 
 chr_sync() {
-    local do_build=1
+    local do_build=0
     local top_branch=''
     local log_dir sync_log build_log
 
@@ -372,7 +372,6 @@ chr_sync() {
             log_dir="$2"
             shift
             ;;
-        --no-build) do_build=0 ;;
         --build) do_build=1 ;;
         -h | --help)
             cat >&2 <<'HELP'
@@ -384,7 +383,7 @@ Usage: chr sync [BRANCH] [options]
   detected automatically.
 
   BRANCH            Top of the stack (default: current branch in src/).
-  --no-build        Skip builds after rebasing.
+  --build           Build after rebasing (default: skip).
   --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
 
   Logs:

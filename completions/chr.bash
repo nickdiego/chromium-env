@@ -174,7 +174,7 @@ _chr() {
             compopt -o nospace
             ;;
         --*)
-            COMPREPLY=($(compgen -W "--no-build --build --log-dir=" -- "$cur"))
+            COMPREPLY=($(compgen -W "--build --log-dir=" -- "$cur"))
             [[ " ${COMPREPLY[*]} " == *"--log-dir="* ]] && compopt -o nospace
             ;;
         *)

@@ -131,9 +131,7 @@ end
 
 # --- chr sync ---
 complete -c chr -n '__fish_seen_subcommand_from sync' \
-    -l no-build -d 'Skip build after rebasing'
-complete -c chr -n '__fish_seen_subcommand_from sync' \
-    -l build -d 'Build after rebasing (default)'
+    -l build -d 'Build after rebasing'
 complete -c chr -n '__fish_seen_subcommand_from sync' \
     -l log-dir -r -d 'Log directory'
 complete -c chr -n '__fish_seen_subcommand_from sync' \

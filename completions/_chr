@@ -134,8 +134,7 @@ _chr_config() {
 _chr_sync() {
     local state
     _arguments \
-        '--no-build[Skip build after rebasing]' \
-        '--build[Build after rebasing (default)]' \
+        '--build[Build after rebasing]' \
         '--log-dir=[Log directory]:logdir:_directories' \
         ':branch:->branch'
     if [[ $state == branch ]]; then
