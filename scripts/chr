@@ -461,7 +461,7 @@ HELP
                 [[ -d "$SRCDIR/out/$dir" ]] || continue
                 [[ "$dir" =~ ^android ]] && targets=("${android_targets[@]}")
                 echo "### out/$dir: ${targets[*]}"
-                autoninja --quiet -C "$SRCDIR/out/$dir" "${targets[@]}"
+                autoninja -C "$SRCDIR/out/$dir" "${targets[@]}"
             done
         fi
 
