@@ -137,7 +137,7 @@ _chr_sync() {
         '--no-build[Skip build after rebasing]' \
         '--build[Build after rebasing (default)]' \
         '--log-dir=[Log directory]:logdir:_directories' \
-        '*:branch:->branch'
+        ':branch:->branch'
     if [[ $state == branch ]]; then
         local -a branches
         branches=("${(@f)$(git -C ~/projects/chromium/src \
@@ -163,7 +163,7 @@ _chr() {
                 'bootstrap:Initialize submodules'
                 'env:Print environment setup commands'
                 'config:Configure and generate build files'
-                'sync:Fetch, rebase branch stack, and build'
+                'sync:Sync main, auto-detect stack, rebase and build'
                 'build:Build targets'
                 'run:Run a built binary'
                 'help:Show help'

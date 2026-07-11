@@ -362,7 +362,7 @@ chr_run() {
 chr_sync() {
     local log_dir log
     local do_build=1
-    local -a branches=()
+    local top_branch=''
 
     log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
@@ -376,15 +376,16 @@ chr_sync() {
         --build) do_build=1 ;;
         -h | --help)
             cat >&2 <<'HELP'
-Usage: chr sync BRANCH... [options]
+Usage: chr sync [BRANCH] [options]
 
-  Refresh local main from origin/main, run gclient sync, then rebase each
-  BRANCH onto its predecessor (the first branch rebases onto main).
-  Optionally builds chrome + tests for all out/ directories that exist.
+  Refresh local main from origin/main, run gclient sync, then rebase the
+  branch stack onto the new main. BRANCH defaults to the current branch in
+  src/. The stack (all local branches between origin/main and BRANCH) is
+  detected automatically.
 
-  BRANCH...         Stack branches in order, bottom to top.
+  BRANCH            Top of the stack (default: current branch in src/).
   --no-build        Skip builds after rebasing.
-  --log-dir=DIR     Log directory (default: ~/projects/chromium/tmp/logs).
+  --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
 
   Log: <log-dir>/fetch-rebase-build-YYYY-MM-DD.log
 
@@ -393,10 +394,10 @@ Usage: chr sync BRANCH... [options]
     out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
 
   On conflict: resolve manually (git add + git rebase --continue),
-  then re-run: chr sync BRANCH...
+  then re-run: chr sync [BRANCH]
 
   Example:
-    chr sync chromod/chrome-test-base-{0..3}
+    chr sync chromod/chrome-test-base-3
 HELP
             return 0
             ;;
@@ -404,13 +405,38 @@ HELP
             echo "chr sync: unknown option '$1'" >&2
             return 1
             ;;
-        *) branches+=("$1") ;;
+        *)
+            if [[ -n "$top_branch" ]]; then
+                echo "chr sync: too many arguments (expected at most one branch)" >&2
+                return 1
+            fi
+            top_branch="$1"
+            ;;
         esac
         shift
     done
 
+    # Default to current branch in src/
+    if [[ -z "$top_branch" ]]; then
+        top_branch=$(git -C "$SRCDIR" branch --show-current 2>/dev/null)
+        if [[ -z "$top_branch" || "$top_branch" == "main" ]]; then
+            echo "chr sync: not on a feature branch. Specify a branch or check one out first." >&2
+            return 1
+        fi
+    fi
+
+    # Detect the stack: local branches on commits between origin/main and top_branch
+    local -a branches=()
+    local commit branch
+    while IFS= read -r commit; do
+        branch=$(git -C "$SRCDIR" branch --points-at "$commit" \
+            --format='%(refname:short)' 2>/dev/null | head -1)
+        [[ -n "$branch" ]] && branches+=("$branch")
+    done < <(git -C "$SRCDIR" log --reverse --format="%H" \
+        "origin/main..${top_branch}" 2>/dev/null)
+
     if [[ ${#branches[@]} -eq 0 ]]; then
-        echo "chr sync: no branches specified. Run 'chr sync --help'." >&2
+        echo "chr sync: $top_branch has no commits on top of origin/main." >&2
         return 1
     fi
 
@@ -443,7 +469,7 @@ HELP
             git -C "$SRCDIR" rebase "$parent" || {
                 echo "### Conflict on $branch. Resolve then re-run:"
                 echo "###   git add <files> && git rebase --continue"
-                echo "###   chr sync ${branches[*]}"
+                echo "###   chr sync ${top_branch}"
                 exit 1
             }
             echo "### $branch -> $(git -C "$SRCDIR" rev-parse --short HEAD)"

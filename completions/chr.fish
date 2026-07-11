@@ -50,7 +50,7 @@ end
 complete -c chr -n __chr_no_subcommand -a bootstrap -d 'Initialize submodules'
 complete -c chr -n __chr_no_subcommand -a env       -d 'Print environment setup commands'
 complete -c chr -n __chr_no_subcommand -a config    -d 'Configure and generate build files'
-complete -c chr -n __chr_no_subcommand -a sync      -d 'Fetch, rebase branch stack, and build'
+complete -c chr -n __chr_no_subcommand -a sync      -d 'Sync main, auto-detect stack, rebase and build'
 complete -c chr -n __chr_no_subcommand -a build     -d 'Build targets'
 complete -c chr -n __chr_no_subcommand -a run       -d 'Run a built binary'
 complete -c chr -n __chr_no_subcommand -a help      -d 'Show help'
