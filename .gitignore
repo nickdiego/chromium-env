@@ -15,3 +15,4 @@
 /.reproxy_cache/
 /.chr_state
 /.gcs_entries
+/.gclient_previous_*
