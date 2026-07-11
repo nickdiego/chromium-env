@@ -192,7 +192,7 @@ Usage: chr config ALIAS [options] [-- GN_ARG...]
   -u, --update-compdb      Regenerate compile_commands.json and update symlink
   -v, --verbose            Show builder group/name with --list-aliases
   -- GN_ARG...             Extra gn args/options passed to gn gen. NOTE: These
-                           take precedence over args coming from mb config files. 
+                           take precedence over args coming from mb config files.
 
   Example:
     chr config linux -- is_debug=true is_component_build=true
@@ -360,9 +360,9 @@ chr_run() {
 }
 
 chr_sync() {
-    local log_dir log
     local do_build=1
     local top_branch=''
+    local log_dir sync_log build_log
 
     log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
@@ -387,7 +387,9 @@ Usage: chr sync [BRANCH] [options]
   --no-build        Skip builds after rebasing.
   --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
 
-  Log: <log-dir>/fetch-rebase-build-YYYY-MM-DD.log
+  Logs:
+  - <log-dir>/fetch-rebase-YYYY-MM-DD.log
+  - <log-dir>/build-YYYY-MM-DD.log
 
   Build targets used:
     out/linux, out/cros              -> chrome browser_tests interactive_ui_tests
@@ -447,7 +449,7 @@ HELP
     fi
 
     mkdir -p "$log_dir"
-    log="$log_dir/fetch-rebase-build-$(date +'%Y-%m-%d').log"
+    sync_log="$log_dir/sync-$(date +'%Y-%m-%d').log"
     (
         set -e
 
@@ -501,14 +503,17 @@ HELP
             for dir in linux cros android android android-desktop; do
                 [[ -d "$SRCDIR/out/$dir" ]] || continue
                 [[ "$dir" =~ ^android ]] && targets=("${android_targets[@]}")
+                build_log="$log_dir/build-${dir}-$(date +'%Y-%m-%d').log"
                 echo "### out/$dir: ${targets[*]}"
-                autoninja -C "$SRCDIR/out/$dir" "${targets[@]}"
+                echo "### logging to $build_log"
+                autoninja -C "$SRCDIR/out/$dir" "${targets[@]}" \
+                    2>&1 >"$build_log"
             done
         fi
 
         echo "### Done: $(date)"
 
-    ) 2>&1 | tee "$log"
+    ) 2>&1 | tee "$sync_log"
     return "${PIPESTATUS[0]}"
 }
 
