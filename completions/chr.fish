@@ -6,7 +6,7 @@
 complete -c chr -f
 
 function __chr_no_subcommand
-    not __fish_seen_subcommand_from bootstrap env config build run help
+    not __fish_seen_subcommand_from bootstrap env config sync build run help
 end
 
 # Produce "alias\tdescription" lines for chr config alias completions
@@ -50,6 +50,7 @@ end
 complete -c chr -n __chr_no_subcommand -a bootstrap -d 'Initialize submodules'
 complete -c chr -n __chr_no_subcommand -a env       -d 'Print environment setup commands'
 complete -c chr -n __chr_no_subcommand -a config    -d 'Configure and generate build files'
+complete -c chr -n __chr_no_subcommand -a sync      -d 'Fetch, rebase branch stack, and build'
 complete -c chr -n __chr_no_subcommand -a build     -d 'Build targets'
 complete -c chr -n __chr_no_subcommand -a run       -d 'Run a built binary'
 complete -c chr -n __chr_no_subcommand -a help      -d 'Show help'
@@ -64,8 +65,6 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
     -s l -l list-aliases -d 'List available build aliases'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -s v -l verbose -d 'Show builder group/name with -l'
-complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
-    -s n -l dry-run -d 'Print commands without executing'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -s u -l update-compdb -d 'Regenerate compile_commands.json and update symlink'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
@@ -124,6 +123,21 @@ end
 function __chr_gn_build_args
     chr config --list-gn-args 2>/dev/null
 end
+
+# Local branches in the Chromium src checkout
+function __chr_src_branches
+    git -C ~/projects/chromium/src branch --format='%(refname:short)' 2>/dev/null
+end
+
+# --- chr sync ---
+complete -c chr -n '__fish_seen_subcommand_from sync' \
+    -l no-build -d 'Skip build after rebasing'
+complete -c chr -n '__fish_seen_subcommand_from sync' \
+    -l build -d 'Build after rebasing (default)'
+complete -c chr -n '__fish_seen_subcommand_from sync' \
+    -l log-dir -r -d 'Log directory'
+complete -c chr -n '__fish_seen_subcommand_from sync' \
+    -a '(__chr_src_branches)' -d 'Branch to rebase'
 
 # --- chr config (after --): gn gen flags and gn build args ---
 complete -c chr -n '__fish_seen_subcommand_from config; and __chr_config_after_dashdash' \

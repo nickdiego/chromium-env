@@ -52,6 +52,10 @@ _chr_gn_build_args() {
     chr config --list-gn-args 2>/dev/null | cut -f1
 }
 
+_chr_src_branches() {
+    git -C ~/projects/chromium/src branch --format='%(refname:short)' 2>/dev/null
+}
+
 # ---- main completion --------------------------------------------------------
 
 _chr() {
@@ -66,7 +70,7 @@ _chr() {
             after_dashdash=1
             break
             ;;
-        bootstrap | env | config | build | run | help) subcommand="${words[i]}" ;;
+        bootstrap | env | config | sync | build | run | help) subcommand="${words[i]}" ;;
         --group=*) group_value="${words[i]#--group=}" ;;
         --group) ((i + 1 < cword)) && group_value="${words[i + 1]}" ;;
         esac
@@ -85,7 +89,7 @@ _chr() {
 
     # --- handle prev-word options that take a value --------------------------
     case "$prev" in
-    -o | --outdir)
+    -o | --outdir | --log-dir)
         _filedir -d
         return
         ;;
@@ -125,6 +129,12 @@ _chr() {
         compopt -o nospace
         return
         ;;
+    --log-dir=*)
+        local pfx="${cur#--log-dir=}"
+        mapfile -t COMPREPLY < <(compgen -d -- "$pfx" | sed 's|^|--log-dir=|')
+        compopt -o nospace
+        return
+        ;;
     esac
 
     # --- subcommand dispatch -------------------------------------------------
@@ -149,10 +159,26 @@ _chr() {
             done
             ;;
         -*)
-            COMPREPLY=($(compgen -W "-l -v -n -u -o" -- "$cur"))
+            COMPREPLY=($(compgen -W "-l -v -u -o" -- "$cur"))
             ;;
         *)
             mapfile -t COMPREPLY < <(compgen -W "$(chr config -l 2>/dev/null)" -- "$cur")
+            ;;
+        esac
+        ;;
+    sync)
+        case "$cur" in
+        --log-dir=*)
+            local pfx="${cur#--log-dir=}"
+            mapfile -t COMPREPLY < <(compgen -d -- "$pfx" | sed 's|^|--log-dir=|')
+            compopt -o nospace
+            ;;
+        --*)
+            COMPREPLY=($(compgen -W "--no-build --build --log-dir=" -- "$cur"))
+            [[ " ${COMPREPLY[*]} " == *"--log-dir="* ]] && compopt -o nospace
+            ;;
+        *)
+            mapfile -t COMPREPLY < <(compgen -W "$(_chr_src_branches)" -- "$cur")
             ;;
         esac
         ;;

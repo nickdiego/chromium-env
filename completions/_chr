@@ -124,12 +124,26 @@ _chr_config() {
     _arguments -s \
         '(-l --list-aliases)'{-l,--list-aliases}'[List available build aliases]' \
         '(-v --verbose)'{-v,--verbose}'[Show builder group/name with -l]' \
-        '(-n --dry-run)'{-n,--dry-run}'[Print commands without executing]' \
         '(-u --update-compdb)'{-u,--update-compdb}'[Regenerate compile_commands.json]' \
         '(-o --outdir)'{-o+,--outdir=}'[Override output directory]:outdir:_directories' \
         '--group=[Builder group]: :_chr_mb_groups' \
         '--builder=[Builder name]: :_chr_mb_builders' \
         '*: :_chr_config_aliases'
+}
+
+_chr_sync() {
+    local state
+    _arguments \
+        '--no-build[Skip build after rebasing]' \
+        '--build[Build after rebasing (default)]' \
+        '--log-dir=[Log directory]:logdir:_directories' \
+        '*:branch:->branch'
+    if [[ $state == branch ]]; then
+        local -a branches
+        branches=("${(@f)$(git -C ~/projects/chromium/src \
+            branch --format='%(refname:short)' 2>/dev/null)}")
+        [[ ${#branches} -gt 0 ]] && _describe 'branch' branches
+    fi
 }
 
 # ---- main entry point -------------------------------------------------------
@@ -149,6 +163,7 @@ _chr() {
                 'bootstrap:Initialize submodules'
                 'env:Print environment setup commands'
                 'config:Configure and generate build files'
+                'sync:Fetch, rebase branch stack, and build'
                 'build:Build targets'
                 'run:Run a built binary'
                 'help:Show help'
@@ -161,6 +176,7 @@ _chr() {
             case $words[1] in
                 env)    _chr_env    ;;
                 config) _chr_config ;;
+                sync)   _chr_sync   ;;
             esac
             ;;
     esac
