@@ -1,0 +1,44 @@
+# Copyright 2026 Igalia S.L.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.yml]
+indent_style = space
+indent_size = 2
+
+# Shell scripts — shfmt reads indent_size and shell_variant from here,
+# so these must stay in sync with the shfmt -i 4 invocations in CI/hooks.
+[*.sh]
+indent_style = space
+indent_size = 4
+shell_variant = bash
+
+[scripts/chr]
+indent_style = space
+indent_size = 4
+shell_variant = bash
+
+[completions/chr.bash]
+indent_style = space
+indent_size = 4
+shell_variant = bash
+
+[completions/_chr]
+indent_style = space
+indent_size = 4
+shell_variant = zsh
+
+[completions/chr.fish]
+indent_style = space
+indent_size = 4
