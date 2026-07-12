@@ -119,16 +119,38 @@ _chr_config() {
         return
     fi
 
+    # Detect mutual exclusivity: alias vs --group/--builder
+    local has_alias=0 has_group_builder=0 skip_next=0
+    for (( i = 2; i <= $#words; i++ )); do
+        (( i == CURRENT )) && skip_next=0 && continue
+        [[ $words[i] == -- ]] && break
+        if (( skip_next )); then skip_next=0; continue; fi
+        if [[ $words[i] == --group* || $words[i] == --builder* ]]; then
+            has_group_builder=1
+            [[ $words[i] == --group || $words[i] == --builder ]] && skip_next=1
+        elif [[ $words[i] == -o || $words[i] == --outdir ]]; then
+            skip_next=1
+        elif [[ $words[i] != -* ]]; then
+            has_alias=1
+        fi
+    done
+
     local curcontext="$curcontext"
     typeset -A opt_args
-    _arguments -s \
-        '(-l --list-aliases)'{-l,--list-aliases}'[List available build aliases]' \
-        '(-v --verbose)'{-v,--verbose}'[Show builder group/name with -l]' \
-        '(-u --update-compdb)'{-u,--update-compdb}'[Regenerate compile_commands.json]' \
-        '(-o --outdir)'{-o+,--outdir=}'[Override output directory]:outdir:_directories' \
-        '--group=[Builder group]: :_chr_mb_groups' \
-        '--builder=[Builder name]: :_chr_mb_builders' \
-        '*: :_chr_config_aliases'
+    local -a args
+    args=(
+        '(-l --list-aliases)'{-l,--list-aliases}'[List available build aliases]'
+        '(-v --verbose)'{-v,--verbose}'[Show builder group/name with -l]'
+        '(-u --update-compdb)'{-u,--update-compdb}'[Regenerate compile_commands.json]'
+        '(-o --outdir)'{-o+,--outdir=}'[Override output directory]:outdir:_directories'
+    )
+    (( !has_alias )) && args+=(
+        '--group=[Builder group]: :_chr_mb_groups'
+        '--builder=[Builder name]: :_chr_mb_builders'
+    )
+    (( !has_group_builder )) && args+=('*: :_chr_config_aliases')
+
+    _arguments -s "${args[@]}"
 }
 
 _chr_sync() {

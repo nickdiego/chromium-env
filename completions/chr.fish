@@ -46,6 +46,60 @@ function __chr_gn_gen_flags
         | sort -u
 end
 
+# True when chr config already has a positional alias on the line
+function __chr_config_has_alias
+    set -l tokens (commandline -opc)
+    set -l seen_config 0
+    set -l skip_next 0
+    for t in $tokens
+        if test $seen_config -eq 0
+            test $t = config; and set seen_config 1
+            continue
+        end
+        if test $skip_next -eq 1
+            set skip_next 0
+            continue
+        end
+        if contains -- $t -o --outdir --group --builder
+            set skip_next 1
+            continue
+        end
+        string match -qr '^-' -- $t; and continue
+        return 0
+    end
+    return 1
+end
+
+# True when chr config already has --group or --builder on the line
+function __chr_config_has_group_or_builder
+    set -l tokens (commandline -opc)
+    for t in $tokens
+        string match -qr '^--(group|builder)' -- $t; and return 0
+    end
+    return 1
+end
+
+# True when chr sync does not yet have a branch argument
+function __chr_sync_no_branch
+    set -l tokens (commandline -opc)
+    set -l seen_sync 0
+    set -l skip_next 0
+    for t in $tokens
+        if test $seen_sync -eq 0
+            test $t = sync; and set seen_sync 1
+            continue
+        end
+        if test $skip_next -eq 1
+            set skip_next 0
+            continue
+        end
+        test $t = --log-dir; and set skip_next 1; and continue
+        string match -qr '^-' -- $t; and continue
+        return 1
+    end
+    return 0
+end
+
 # --- Subcommands ---
 complete -c chr -n __chr_no_subcommand -a bootstrap -d 'Initialize submodules'
 complete -c chr -n __chr_no_subcommand -a env       -d 'Print environment setup commands'
@@ -69,11 +123,11 @@ complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_aft
     -s u -l update-compdb -d 'Regenerate compile_commands.json and update symlink'
 complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
     -s o -l outdir -r -d 'Override output directory'
-complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash; and not __chr_config_has_group_or_builder' \
     -a '(__chr_config_aliases)'
-complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash; and not __chr_config_has_alias' \
     -f -a '(__chr_mb_group_completions)'
-complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash' \
+complete -c chr -n '__fish_seen_subcommand_from config; and not __chr_config_after_dashdash; and not __chr_config_has_alias' \
     -f -a '(__chr_mb_builder_completions)'
 
 # Extract the current --group= value from the command line tokens
@@ -134,7 +188,7 @@ complete -c chr -n '__fish_seen_subcommand_from sync' \
     -l build -d 'Build after rebasing'
 complete -c chr -n '__fish_seen_subcommand_from sync' \
     -l log-dir -r -d 'Log directory'
-complete -c chr -n '__fish_seen_subcommand_from sync' \
+complete -c chr -n '__fish_seen_subcommand_from sync; and __chr_sync_no_branch' \
     -a '(__chr_src_branches)' -d 'Branch to rebase'
 
 # --- chr config (after --): gn gen flags and gn build args ---

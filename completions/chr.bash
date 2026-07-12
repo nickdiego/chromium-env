@@ -63,16 +63,41 @@ _chr() {
     _init_completion || return
 
     local subcommand='' after_dashdash=0 group_value=''
-    local i
+    local config_alias='' sync_branch='' has_group=0 has_builder=0
+    local i skip=0
     for ((i = 1; i < cword; i++)); do
+        if ((skip)); then
+            skip=0
+            continue
+        fi
         case "${words[i]}" in
         --)
             after_dashdash=1
             break
             ;;
         bootstrap | env | config | sync | build | run | help) subcommand="${words[i]}" ;;
-        --group=*) group_value="${words[i]#--group=}" ;;
-        --group) ((i + 1 < cword)) && group_value="${words[i + 1]}" ;;
+        --group=*)
+            group_value="${words[i]#--group=}"
+            has_group=1
+            ;;
+        --group)
+            has_group=1
+            if ((i + 1 < cword)); then
+                group_value="${words[i + 1]}"
+                skip=1
+            fi
+            ;;
+        --builder=*) has_builder=1 ;;
+        --builder)
+            has_builder=1
+            ((i + 1 < cword)) && skip=1
+            ;;
+        -o | --outdir | --log-dir) ((i + 1 < cword)) && skip=1 ;;
+        --outdir=* | --log-dir=* | -*) ;;
+        *)
+            [[ "$subcommand" == "config" ]] && config_alias="${words[i]}"
+            [[ "$subcommand" == "sync" ]] && sync_branch="${words[i]}"
+            ;;
         esac
     done
 
@@ -108,19 +133,23 @@ _chr() {
     # --- handle --opt=<value> style (current word contains =) ----------------
     case "$cur" in
     --group=*)
-        local pfx="${cur#--group=}"
-        mapfile -t COMPREPLY < <(compgen -P "--group=" -W "$(_chr_mb_groups)" -- "$pfx")
-        compopt -o nospace
+        if [[ -z "$config_alias" ]]; then
+            local pfx="${cur#--group=}"
+            mapfile -t COMPREPLY < <(compgen -P "--group=" -W "$(_chr_mb_groups)" -- "$pfx")
+            compopt -o nospace
+        fi
         return
         ;;
     --builder=*)
-        local pfx="${cur#--builder=}"
-        local b
-        b=$(_chr_mb_builders "$group_value")
-        if [[ -n "$b" ]]; then
-            mapfile -t COMPREPLY < <(compgen -P "--builder=" -W "$b" -- "$pfx")
+        if [[ -z "$config_alias" ]]; then
+            local pfx="${cur#--builder=}"
+            local b
+            b=$(_chr_mb_builders "$group_value")
+            if [[ -n "$b" ]]; then
+                mapfile -t COMPREPLY < <(compgen -P "--builder=" -W "$b" -- "$pfx")
+            fi
+            compopt -o nospace
         fi
-        compopt -o nospace
         return
         ;;
     --outdir=*)
@@ -148,11 +177,12 @@ _chr() {
     config)
         case "$cur" in
         --*)
-            COMPREPLY=($(compgen -W "
-                        --list-aliases --verbose --update-compdb
-                        --outdir= --group= --builder=
-                    " -- "$cur"))
-            # Suppress trailing space for options that expect a value via =
+            local opts="--list-aliases --verbose --update-compdb --outdir="
+            if [[ -z "$config_alias" ]]; then
+                ((has_group)) || opts+=" --group="
+                ((has_builder)) || opts+=" --builder="
+            fi
+            COMPREPLY=($(compgen -W "$opts" -- "$cur"))
             local c
             for c in "${COMPREPLY[@]}"; do
                 [[ "$c" == *= ]] && compopt -o nospace && break
@@ -162,7 +192,9 @@ _chr() {
             COMPREPLY=($(compgen -W "-l -v -u -o" -- "$cur"))
             ;;
         *)
-            mapfile -t COMPREPLY < <(compgen -W "$(chr config -l 2>/dev/null)" -- "$cur")
+            if [[ -z "$config_alias" ]] && ((!has_group && !has_builder)); then
+                mapfile -t COMPREPLY < <(compgen -W "$(chr config -l 2>/dev/null)" -- "$cur")
+            fi
             ;;
         esac
         ;;
@@ -178,7 +210,8 @@ _chr() {
             [[ " ${COMPREPLY[*]} " == *"--log-dir="* ]] && compopt -o nospace
             ;;
         *)
-            mapfile -t COMPREPLY < <(compgen -W "$(_chr_src_branches)" -- "$cur")
+            [[ -z "$sync_branch" ]] &&
+                mapfile -t COMPREPLY < <(compgen -W "$(_chr_src_branches)" -- "$cur")
             ;;
         esac
         ;;
