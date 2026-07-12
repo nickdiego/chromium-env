@@ -1,5 +1,0 @@
-Old GN args files for each platform usually built. Used to be generated
-by the old chr_config-based scripts.
-
-PS: At this point, mostly backups until new chr-based workflow
-stabilizes. TODO: Remove once that's done.
