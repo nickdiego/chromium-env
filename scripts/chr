@@ -362,7 +362,7 @@ chr_run() {
 chr_sync() {
     local do_build=0
     local top_branch=''
-    local log_dir sync_log build_log
+    local log_dir sync_log
 
     log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
@@ -452,7 +452,7 @@ HELP
     (
         set -e
 
-        echo "### chr sync: $(date)"
+        echo -e "\n### chr sync: $(date)"
         ((skip_rebase)) || echo "### Stack: ${branches[*]}"
 
         # Refresh local main
@@ -477,7 +477,7 @@ HELP
         if ! ((skip_rebase)); then
             parent="main"
             for branch in "${branches[@]}"; do
-                echo "### Rebasing $branch onto $parent..."
+                echo -e "\n### Rebasing $branch onto $parent..."
                 git -C "$SRCDIR" checkout "$branch" -q
                 git -C "$SRCDIR" rebase "$parent" || {
                     echo "### Conflict on $branch. Resolve then re-run:"
@@ -498,15 +498,14 @@ HELP
         local android_targets=(chrome_public_apk chrome_public_test_apk)
         local targets=("${linux_targets[@]}")
         if ((do_build)); then
-            echo "### Building..."
+            echo -e "\n### Building..."
             for dir in linux cros android android android-desktop; do
                 [[ -d "$SRCDIR/out/$dir" ]] || continue
                 [[ "$dir" =~ ^android ]] && targets=("${android_targets[@]}")
-                build_log="$log_dir/build-${dir}-$(date +'%Y-%m-%d').log"
+
                 echo "### out/$dir: ${targets[*]}"
-                echo "### logging to $build_log"
-                autoninja -C "$SRCDIR/out/$dir" "${targets[@]}" \
-                    2>&1 >"$build_log"
+                autoninja --quiet --heartbeat_period 5s -C "$SRCDIR/out/$dir" "${targets[@]}"
+                echo
             done
         fi
 
