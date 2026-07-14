@@ -105,7 +105,7 @@ complete -c chr -n __chr_no_subcommand -a bootstrap -d 'Initialize submodules'
 complete -c chr -n __chr_no_subcommand -a env       -d 'Print environment setup commands'
 complete -c chr -n __chr_no_subcommand -a config    -d 'Configure and generate build files'
 complete -c chr -n __chr_no_subcommand -a sync      -d 'Sync main, auto-detect stack, rebase and build'
-complete -c chr -n __chr_no_subcommand -a build     -d 'Build targets'
+complete -c chr -n __chr_no_subcommand -a build     -d 'Build configured output directories'
 complete -c chr -n __chr_no_subcommand -a run       -d 'Run a built binary'
 complete -c chr -n __chr_no_subcommand -a help      -d 'Show help'
 
@@ -190,6 +190,12 @@ complete -c chr -n '__fish_seen_subcommand_from sync' \
     -l log-dir -r -d 'Log directory'
 complete -c chr -n '__fish_seen_subcommand_from sync; and __chr_sync_no_branch' \
     -a '(__chr_src_branches)' -d 'Branch to rebase'
+
+# --- chr build ---
+complete -c chr -n '__fish_seen_subcommand_from build' \
+    -l all -d 'Build all detected output directories'
+complete -c chr -n '__fish_seen_subcommand_from build' \
+    -l log-dir -r -d 'Log directory'
 
 # --- chr config (after --): gn gen flags and gn build args ---
 complete -c chr -n '__fish_seen_subcommand_from config; and __chr_config_after_dashdash' \

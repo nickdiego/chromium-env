@@ -38,7 +38,7 @@ Subcommands:
   env         Print environment setup commands for the current shell
   config      Configure and generate build files
   sync        Fetch latest main, rebase a branch stack, and build
-  build       Build targets (coming soon)
+  build       Build configured output directories
   run         Run a built binary (coming soon)
 
 Options:
@@ -350,8 +350,87 @@ HELP
 }
 
 chr_build() {
-    echo "chr build: not yet implemented" >&2
-    return 1
+    local do_all=0
+    local log_dir
+
+    log_dir="$CHROMIUMDIR/logs"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        --log-dir=*) log_dir="${1##--log-dir=}" ;;
+        --log-dir)
+            log_dir="$2"
+            shift
+            ;;
+        --all) do_all=1 ;;
+        -h | --help)
+            cat >&2 <<'HELP'
+Usage: chr build [options]
+
+  Build configured output directories.
+
+  --all             Build all detected output directories.
+  --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
+
+  Build targets used:
+    out/linux, out/cros              -> chrome browser_tests interactive_ui_tests
+    out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
+
+  Logs:
+  - <log-dir>/build-YYYY-MM-DD.log
+HELP
+            return 0
+            ;;
+        -*)
+            echo "chr build: unknown option '$1'" >&2
+            return 1
+            ;;
+        *)
+            echo "chr build: unexpected argument '$1'" >&2
+            return 1
+            ;;
+        esac
+        shift
+    done
+
+    if ! ((do_all)); then
+        echo "chr build: not implemented (use --all to build all configured output dirs)" >&2
+        return 1
+    fi
+
+    mkdir -p "$log_dir"
+    local build_log="$log_dir/build-$(date +'%Y-%m-%d').log"
+    (
+        set -e
+
+        echo -e "\n### chr build: $(date)"
+
+        local linux_targets=(chrome browser_tests interactive_ui_tests)
+        local android_targets=(chrome_public_apk chrome_public_test_apk)
+        local targets found=0
+
+        echo "### Building..."
+        for dir in linux cros android android-desktop; do
+            [[ -d "$SRCDIR/out/$dir" ]] || continue
+            found=1
+            if [[ "$dir" =~ ^android ]]; then
+                targets=("${android_targets[@]}")
+            else
+                targets=("${linux_targets[@]}")
+            fi
+            echo "### out/$dir: ${targets[*]}"
+            autoninja --quiet --heartbeat_period 5s -C "$SRCDIR/out/$dir" "${targets[@]}"
+            echo
+        done
+
+        if ! ((found)); then
+            echo "### No output directories found (looked for out/{linux,cros,android,android-desktop})" >&2
+            exit 1
+        fi
+
+        echo "### Done: $(date)"
+
+    ) 2>&1 | tee "$build_log"
+    return "${PIPESTATUS[0]}"
 }
 
 chr_run() {
@@ -494,19 +573,8 @@ HELP
         fi
 
         # Build
-        local linux_targets=(chrome browser_tests interactive_ui_tests)
-        local android_targets=(chrome_public_apk chrome_public_test_apk)
-        local targets=("${linux_targets[@]}")
         if ((do_build)); then
-            echo -e "\n### Building..."
-            for dir in linux cros android android android-desktop; do
-                [[ -d "$SRCDIR/out/$dir" ]] || continue
-                [[ "$dir" =~ ^android ]] && targets=("${android_targets[@]}")
-
-                echo "### out/$dir: ${targets[*]}"
-                autoninja --quiet --heartbeat_period 5s -C "$SRCDIR/out/$dir" "${targets[@]}"
-                echo
-            done
+            chr_build --all --log-dir="$log_dir"
         fi
 
         echo "### Done: $(date)"
