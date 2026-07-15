@@ -411,7 +411,6 @@ HELP
     fi
 
     echo "### Done: $(date)"
-    return "${PIPESTATUS[0]}"
 }
 
 chr_run() {
@@ -540,7 +539,6 @@ HELP
     fi
 
     echo "### Done: $(date)"
-    return "${PIPESTATUS[0]}"
 }
 
 # --- main dispatch ---
