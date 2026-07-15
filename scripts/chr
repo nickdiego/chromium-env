@@ -422,16 +422,9 @@ chr_run() {
 chr_sync() {
     local do_build=0
     local top_branch=''
-    local log_dir sync_log
 
-    log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --log-dir=*) log_dir="${1##--log-dir=}" ;;
-        --log-dir)
-            log_dir="$2"
-            shift
-            ;;
         --build) do_build=1 ;;
         -h | --help)
             cat >&2 <<'HELP'
@@ -444,15 +437,8 @@ Usage: chr sync [BRANCH] [options]
 
   BRANCH            Top of the stack (default: current branch in src/).
   --build           Build after rebasing (default: skip).
-  --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
 
-  Logs:
-  - <log-dir>/fetch-rebase-YYYY-MM-DD.log
-  - <log-dir>/build-YYYY-MM-DD.log
-
-  Build targets used:
-    out/linux, out/cros              -> chrome browser_tests interactive_ui_tests
-    out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
+  Build targets used: Default target (all)
 
   On conflict: resolve manually (git add + git rebase --continue),
   then re-run: chr sync [BRANCH]
@@ -507,60 +493,53 @@ HELP
         fi
     fi
 
-    mkdir -p "$log_dir"
-    sync_log="$log_dir/sync-$(date +'%Y-%m-%d').log"
-    (
-        set -e
+    echo -e "\n### chr sync: $(date)"
+    ((skip_rebase)) || echo "### Stack: ${branches[*]}"
 
-        echo -e "\n### chr sync: $(date)"
-        ((skip_rebase)) || echo "### Stack: ${branches[*]}"
-
-        # Refresh local main
-        echo "### Refreshing main from origin..."
-        if ((skip_rebase)); then
-            [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
-                git -C "$SRCDIR" checkout --detach -q
-        else
-            [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
-                git -C "$SRCDIR" checkout "${branches[-1]}" -q
-        fi
-        git -C "$SRCDIR" branch -D main 2>/dev/null || true
-        git -C "$SRCDIR" fetch origin main
-        git -C "$SRCDIR" checkout FETCH_HEAD -b main
-        echo "### main -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
-
-        # Sync dependencies
-        echo "### gclient sync -D..."
-        (cd "$CHROMIUMDIR" && gclient sync -D)
-
-        # Rebase stack
-        if ! ((skip_rebase)); then
-            parent="main"
-            for branch in "${branches[@]}"; do
-                echo -e "\n### Rebasing $branch onto $parent..."
-                git -C "$SRCDIR" checkout "$branch" -q
-                git -C "$SRCDIR" rebase "$parent" || {
-                    echo "### Conflict on $branch. Resolve then re-run:"
-                    echo "###   git add <files> && git rebase --continue"
-                    echo "###   chr sync ${top_branch}"
-                    exit 1
-                }
-                echo "### $branch -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
-                parent="$branch"
-            done
+    # Refresh local main
+    echo "### Refreshing main from origin..."
+    if ((skip_rebase)); then
+        [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
+            git -C "$SRCDIR" checkout --detach -q
+    else
+        [[ "$(git -C "$SRCDIR" branch --show-current)" == "main" ]] &&
             git -C "$SRCDIR" checkout "${branches[-1]}" -q
-        else
-            git -C "$SRCDIR" checkout main -q
-        fi
+    fi
+    git -C "$SRCDIR" branch -D main 2>/dev/null || true
+    git -C "$SRCDIR" fetch origin main
+    git -C "$SRCDIR" checkout FETCH_HEAD -b main
+    echo "### main -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
 
-        # Build
-        if ((do_build)); then
-            chr_build --all
-        fi
+    # Sync dependencies
+    echo "### gclient sync -D..."
+    (cd "$CHROMIUMDIR" && gclient sync -D)
 
-        echo "### Done: $(date)"
+    # Rebase stack
+    if ! ((skip_rebase)); then
+        parent="main"
+        for branch in "${branches[@]}"; do
+            echo -e "\n### Rebasing $branch onto $parent..."
+            git -C "$SRCDIR" checkout "$branch" -q
+            git -C "$SRCDIR" rebase "$parent" || {
+                echo "### Conflict on $branch. Resolve then re-run:"
+                echo "###   git add <files> && git rebase --continue"
+                echo "###   chr sync ${top_branch}"
+                exit 1
+            }
+            echo "### $branch -> $(git -C "$SRCDIR" rev-parse --short HEAD)"
+            parent="$branch"
+        done
+        git -C "$SRCDIR" checkout "${branches[-1]}" -q
+    else
+        git -C "$SRCDIR" checkout main -q
+    fi
 
-    ) 2>&1 | tee "$sync_log"
+    # Build
+    if ((do_build)); then
+        chr_build --all
+    fi
+
+    echo "### Done: $(date)"
     return "${PIPESTATUS[0]}"
 }
 
