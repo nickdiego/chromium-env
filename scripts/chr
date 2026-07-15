@@ -359,16 +359,8 @@ HELP
 
 chr_build() {
     local do_all=0
-    local log_dir build_log
-
-    log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --log-dir=*) log_dir="${1##--log-dir=}" ;;
-        --log-dir)
-            log_dir="$2"
-            shift
-            ;;
         --all) do_all=1 ;;
         -h | --help)
             cat >&2 <<'HELP'
@@ -377,14 +369,8 @@ Usage: chr build [options]
   Build configured output directories.
 
   --all             Build all detected output directories.
-  --log-dir=DIR     Log directory (default: ~/projects/chromium/logs).
 
-  Build targets used:
-    out/linux, out/cros              -> chrome browser_tests interactive_ui_tests
-    out/android, out/android-desktop -> chrome_public_apk chrome_public_test_apk
-
-  Logs:
-  - <log-dir>/build-YYYY-MM-DD.log
+  Build targets used: Default (all)
 HELP
             return 0
             ;;
@@ -405,34 +391,26 @@ HELP
         return 1
     fi
 
-    mkdir -p "$log_dir"
-    build_log="$log_dir/build-$(date +'%Y-%m-%d').log"
-    (
-        set -e
+    echo -e "\n### chr build: $(date)"
 
-        echo -e "\n### chr build: $(date)"
+    # TODO(nickdiego): Support targets coming from command args.
+    local targets=()
+    local found=0
 
-        # TODO(nickdiego): Support targets coming from command args.
-        local targets=()
-        local found=0
+    echo "### Building..."
+    for dir in linux cros android android-desktop; do
+        [[ -d "$SRCDIR/out/$dir" ]] || continue
+        found=1
+        echo "### out/$dir: ${targets[*]}"
+        autoninja -C "$SRCDIR/out/$dir" "${targets[@]}"
+        echo
+    done
+    if ! ((found)); then
+        echo "### No output directories found (looked for out/{linux,cros,android,android-desktop})" >&2
+        exit 1
+    fi
 
-        echo "### Building..."
-        for dir in linux cros android android-desktop; do
-            [[ -d "$SRCDIR/out/$dir" ]] || continue
-            found=1
-            echo "### out/$dir: ${targets[*]}"
-            autoninja --quiet --heartbeat_period 5s -C "$SRCDIR/out/$dir" "${targets[@]}"
-            echo
-        done
-
-        if ! ((found)); then
-            echo "### No output directories found (looked for out/{linux,cros,android,android-desktop})" >&2
-            exit 1
-        fi
-
-        echo "### Done: $(date)"
-
-    ) 2>&1 | tee "$build_log"
+    echo "### Done: $(date)"
     return "${PIPESTATUS[0]}"
 }
 
@@ -577,7 +555,7 @@ HELP
 
         # Build
         if ((do_build)); then
-            chr_build --all --log-dir="$log_dir"
+            chr_build --all
         fi
 
         echo "### Done: $(date)"
