@@ -271,7 +271,8 @@ HELP
         echo "chr config: --group and --builder must be used together." >&2
         return 1
     else
-        echo "chr config: alias or --group/--builder required. Run 'chr config --list-aliases' to see aliases." >&2
+        echo -n "chr config: alias or --group/--builder required." >&2
+        echo " Run 'chr config --list-aliases' to see aliases." >&2
         return 1
     fi
     local abs_outdir="$SRCDIR/$resolved_outdir"
