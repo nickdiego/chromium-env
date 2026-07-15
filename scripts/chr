@@ -359,7 +359,7 @@ HELP
 
 chr_build() {
     local do_all=0
-    local log_dir
+    local log_dir build_log
 
     log_dir="$CHROMIUMDIR/logs"
     while [[ $# -gt 0 ]]; do
@@ -406,25 +406,20 @@ HELP
     fi
 
     mkdir -p "$log_dir"
-    local build_log="$log_dir/build-$(date +'%Y-%m-%d').log"
+    build_log="$log_dir/build-$(date +'%Y-%m-%d').log"
     (
         set -e
 
         echo -e "\n### chr build: $(date)"
 
-        local linux_targets=(chrome browser_tests interactive_ui_tests)
-        local android_targets=(chrome_public_apk chrome_public_test_apk)
-        local targets found=0
+        # TODO(nickdiego): Support targets coming from command args.
+        local targets=()
+        local found=0
 
         echo "### Building..."
         for dir in linux cros android android-desktop; do
             [[ -d "$SRCDIR/out/$dir" ]] || continue
             found=1
-            if [[ "$dir" =~ ^android ]]; then
-                targets=("${android_targets[@]}")
-            else
-                targets=("${linux_targets[@]}")
-            fi
             echo "### out/$dir: ${targets[*]}"
             autoninja --quiet --heartbeat_period 5s -C "$SRCDIR/out/$dir" "${targets[@]}"
             echo
