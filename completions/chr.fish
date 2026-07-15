@@ -93,7 +93,6 @@ function __chr_sync_no_branch
             set skip_next 0
             continue
         end
-        test $t = --log-dir; and set skip_next 1; and continue
         string match -qr '^-' -- $t; and continue
         return 1
     end
@@ -186,16 +185,12 @@ end
 # --- chr sync ---
 complete -c chr -n '__fish_seen_subcommand_from sync' \
     -l build -d 'Build after rebasing'
-complete -c chr -n '__fish_seen_subcommand_from sync' \
-    -l log-dir -r -d 'Log directory'
 complete -c chr -n '__fish_seen_subcommand_from sync; and __chr_sync_no_branch' \
     -a '(__chr_src_branches)' -d 'Branch to rebase'
 
 # --- chr build ---
 complete -c chr -n '__fish_seen_subcommand_from build' \
     -l all -d 'Build all detected output directories'
-complete -c chr -n '__fish_seen_subcommand_from build' \
-    -l log-dir -r -d 'Log directory'
 
 # --- chr config (after --): gn gen flags and gn build args ---
 complete -c chr -n '__fish_seen_subcommand_from config; and __chr_config_after_dashdash' \

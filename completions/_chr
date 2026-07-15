@@ -157,7 +157,6 @@ _chr_sync() {
     local state
     _arguments \
         '--build[Build after rebasing]' \
-        '--log-dir=[Log directory]:logdir:_directories' \
         ':branch:->branch'
     if [[ $state == branch ]]; then
         local -a branches

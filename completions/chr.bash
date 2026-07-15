@@ -92,8 +92,8 @@ _chr() {
             has_builder=1
             ((i + 1 < cword)) && skip=1
             ;;
-        -o | --outdir | --log-dir) ((i + 1 < cword)) && skip=1 ;;
-        --outdir=* | --log-dir=* | -*) ;;
+        -o | --outdir) ((i + 1 < cword)) && skip=1 ;;
+        --outdir=* | -*) ;;
         *)
             [[ "$subcommand" == "config" ]] && config_alias="${words[i]}"
             [[ "$subcommand" == "sync" ]] && sync_branch="${words[i]}"
@@ -114,7 +114,7 @@ _chr() {
 
     # --- handle prev-word options that take a value --------------------------
     case "$prev" in
-    -o | --outdir | --log-dir)
+    -o | --outdir)
         _filedir -d
         return
         ;;
@@ -158,12 +158,6 @@ _chr() {
         compopt -o nospace
         return
         ;;
-    --log-dir=*)
-        local pfx="${cur#--log-dir=}"
-        mapfile -t COMPREPLY < <(compgen -d -- "$pfx" | sed 's|^|--log-dir=|')
-        compopt -o nospace
-        return
-        ;;
     esac
 
     # --- subcommand dispatch -------------------------------------------------
@@ -200,14 +194,8 @@ _chr() {
         ;;
     sync)
         case "$cur" in
-        --log-dir=*)
-            local pfx="${cur#--log-dir=}"
-            mapfile -t COMPREPLY < <(compgen -d -- "$pfx" | sed 's|^|--log-dir=|')
-            compopt -o nospace
-            ;;
         --*)
-            COMPREPLY=($(compgen -W "--build --log-dir=" -- "$cur"))
-            [[ " ${COMPREPLY[*]} " == *"--log-dir="* ]] && compopt -o nospace
+            COMPREPLY=($(compgen -W "--build" -- "$cur"))
             ;;
         *)
             [[ -z "$sync_branch" ]] &&
