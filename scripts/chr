@@ -316,7 +316,7 @@ HELP
     # ninja target can be used, ie: does not try to build packages on incompatible
     # linux distros. eg: building RPM package on an archlinux box.
     grep -q '^target_os = "linux"$' "$tmpfile" &&
-        gn_build_args+=('enable_linux_installer=false')
+        gn_build_args+=('enable_linux_installer=false' 'enable_remoting=false')
 
     # Command-line GN args go last, so take precedence over build args
     # coming from MB configuration files.
