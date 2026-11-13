@@ -150,6 +150,7 @@ chr_config() {
         ["android"]="tryserver.chromium.android|android-arm64-rel"
         ["android-desktop"]="chromium.android.desktop|android-desktop-x64-compile-rel"
         ["cros"]="tryserver.chromium.chromiumos|linux-chromeos-rel"
+        ["win"]="tryserver.chromium.win|win-libfuzzer-asan-rel"
     )
 
     local alias_name=''

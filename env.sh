@@ -562,3 +562,7 @@ chr_setconfig -q $CHR_CONFIG_TARGET $CHR_CONFIG_ARGS
 # -j2000 would complain if this is not set).
 ulimit -n 4096
 
+# Windows cross-build configs
+# Fish vars are set at ~/.config/fish/conf.d/chromium.fish
+export DEPOT_TOOLS_WIN_TOOLCHAIN_BASE_URL="${chromiumdir}/tools/windows"
+export GYP_MSVS_HASH_3bfcb536c8='526c14ae30'
